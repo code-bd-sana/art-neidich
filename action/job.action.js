@@ -1,0 +1,33 @@
+"use server";
+
+import { apiFetch } from "@/lib/fetcher";
+import { cookies } from "next/headers";
+
+/* ======================
+   Job
+   GET /api/v1/job/
+   Private Api
+====================== */
+export async function getJobs(page, limit ) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token'); 
+    
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const resp =  await apiFetch(`/job?page=${page}&limit=${limit}`, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.value}`, 
+      },
+    });
+    console.log(resp)
+    return resp
+  } catch (error) {
+    console.error("Get jobs error:", error);
+    throw error;
+  }
+}

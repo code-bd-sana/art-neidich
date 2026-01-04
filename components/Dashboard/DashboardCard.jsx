@@ -22,15 +22,15 @@ const DashboardCard = ({ isCollapsed, onToggle, activeSection, onSectionChange }
   }, [activeSection]);
 
   const menuItems = [
-    { id: "Dashboard", icon: LayoutDashboard, label: "Dashboard", link: "/" },
-    { id: "Manage Jobs", icon: User, label: "Manage Jobs", link: "/manage-jobs" },
-    { id: "Inspectors", icon: UserRoundSearch, label: "Inspectors", link: "/inspectors" },
-    { id: "Labels", icon: Tags, label: "Labels", link: "/labels" },
+    { id: "Dashboard", icon: LayoutDashboard, label: "Dashboard", link: "/dashboard" },
+    { id: "Manage Jobs", icon: User, label: "Manage Jobs", link: "/dashboard/manage-jobs" },
+    { id: "Inspectors", icon: UserRoundSearch, label: "Inspectors", link: "/dashboard/inspectors" },
+    { id: "Labels", icon: Tags, label: "Labels", link: "/dashboard/labels" },
   ];
 
   const otherItems = [
-    { id: "Profile", icon: UserCircle, label: "Profile", link: "/profile" },
-    { id: "Admin Approval List", icon: UserCog, label: "Admin Approval List", link: "/admin-list" },
+    { id: "Profile", icon: UserCircle, label: "Profile", link: "/dashboard/profile" },
+    { id: "Admin Approval List", icon: UserCog, label: "Admin Approval List", link: "/dashboard/admin-list" },
   ];
 
   // Map URL path to menu item ID with exact matching
