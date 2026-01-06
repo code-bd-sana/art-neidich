@@ -29,7 +29,7 @@ export default function DashboardHome() {
 
         {/* Desktop Summary Sidebar */}
         <aside
-          className={`hidden md:block transition-all duration-300 border-l border-gray-200 bg-white overflow-hidden ${
+          className={`hidden md:block transition-all duration-300 border-l border-gray-200 bg-white  " ${
             rightSidebarCollapsed ? "w-16" : "w-64"
           }`}
         >
