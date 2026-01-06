@@ -8,24 +8,82 @@ import { cookies } from "next/headers";
    GET /api/v1/job/
    Private Api
 ====================== */
-export async function getJobs(page, limit ) {
+export async function getJobs(page, limit) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token'); 
-    
+    const token = cookieStore.get("token");
+
     if (!token) {
       throw new Error("No authentication token found");
     }
 
-    const resp =  await apiFetch(`/job?page=${page}&limit=${limit}`, {
+    const resp = await apiFetch(`/job?page=${page}&limit=${limit}`, {
       method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`, 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
       },
     });
-    console.log(resp)
-    return resp
+    // console.log(resp);
+    return resp;
+  } catch (error) {
+    console.error("Get jobs error:", error);
+    throw error;
+  }
+}
+/* ======================
+   Job
+   POST /api/v1/job/
+   Private Api
+====================== */
+export async function postJob(jobData) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+    // console.log("Sending job data:", jobData);
+    const resp = await apiFetch(`/job`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+      body: JSON.stringify(jobData),
+    });
+
+    console.log("Post job response:", resp);
+    return resp;
+  } catch (error) {
+    console.error("Post job error:", error);
+    throw error;
+  }
+}
+/* ======================
+   Job
+   GET /api/v1/job/
+   Private Api
+====================== */
+export async function getJobById(id) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const resp = await apiFetch(`/job/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+    // console.log(resp);
+    return resp;
   } catch (error) {
     console.error("Get jobs error:", error);
     throw error;

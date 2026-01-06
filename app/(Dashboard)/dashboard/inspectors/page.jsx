@@ -1,724 +1,811 @@
 "use client";
 
-import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, MoreVertical, Trash, User } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Ban,
+  CheckCircle,
+  Loader2,
+  Search,
+  X,
+  Filter,
+} from "lucide-react";
+import { getUsers } from "@/action/user.action";
+import { updateUserStatus } from "@/action/user.action";
 
 export default function InspectorPage() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [allInspectors, setAllInspectors] = useState([]); // Store ALL fetched inspectors
+  const [filteredInspectors, setFilteredInspectors] = useState([]); // All filtered inspectors
+  const [paginatedInspectors, setPaginatedInspectors] = useState([]); // Current page inspectors
+  const [totalPages, setTotalPages] = useState(1);
+  const [actionLoading, setActionLoading] = useState({});
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [actionError, setActionError] = useState("");
 
-  // Inspector data matching your image
-  const inspectors = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "-",
-      agreedFee: "-",
-      action: "Approve",
-      actionColor: "text-teal-600 hover:text-teal-700"
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "-",
-      agreedFee: "-",
-      action: "Approve",
-      actionColor: "text-teal-600 hover:text-teal-700"
-    },
-    {
-      id: 3,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "-",
-      agreedFee: "-",
-      action: "Approve",
-      actionColor: "text-teal-600 hover:text-teal-700"
-    },
-    {
-      id: 4,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Rush Order",
-      agreedFee: "$300",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 5,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Long Distance",
-      agreedFee: "$400",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 6,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Occupied Fee",
-      agreedFee: "$100",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 7,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Standard Fee",
-      agreedFee: "$50+",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 8,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Rush Order",
-      agreedFee: "$300",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 9,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Long Distance",
-      agreedFee: "$400",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
-    },
-    {
-      id: 10,
-      name: "John Doe",
-      email: "john.doe@gmail.com",
-      feeStatus: "Modified Fee",
-      agreedFee: "$200",
-      action: "Remove",
-      actionColor: "text-red-600 hover:text-red-700"
+  const itemsPerPage = 10;
+
+  // Fetch ALL inspectors from API (no pagination on server)
+  const fetchAllInspectors = useCallback(async (search = "") => {
+    try {
+      setLoading(true);
+      // Fetch a large number to get all inspectors
+      const data = await getUsers(1, 1000, search, "2");
+
+      if (data.success) {
+        setAllInspectors(data.data || []);
+      } else {
+        setError(data.message || "Failed to load inspectors");
+      }
+    } catch (err) {
+      console.error("Error fetching inspectors:", err);
+      setError("Could not load inspectors");
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, []);
 
-  // Handle actions
-  const handleAction = (inspectorId, action) => {
-    console.log(`Clicked ${action} for inspector ${inspectorId}`);
-    // Add your action logic here
+  // Apply filtering and pagination
+  useEffect(() => {
+    let filtered = [...allInspectors];
+
+    // Apply status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((inspector) => {
+        if (filterStatus === "pending") {
+          return !inspector.isApproved;
+        }
+        if (filterStatus === "active") {
+          return inspector.isApproved && !inspector.isSuspended;
+        }
+        if (filterStatus === "suspended") {
+          return inspector.isApproved && inspector.isSuspended === true;
+        }
+        return true;
+      });
+    }
+
+    setFilteredInspectors(filtered);
+
+    // Calculate total pages
+    const totalFiltered = filtered.length;
+    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
+    setTotalPages(totalPages || 1);
+
+    // Reset to page 1 if current page is beyond total pages
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+
+    // Get paginated inspectors for current page
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginated = filtered.slice(startIndex, endIndex);
+    setPaginatedInspectors(paginated);
+  }, [allInspectors, filterStatus, currentPage]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to page 1 on search
+      fetchAllInspectors(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Initial load
+  useEffect(() => {
+    fetchAllInspectors();
+  }, [fetchAllInspectors]);
+
+  // Handle approve action
+  const handleApprove = async (inspectorId, inspectorName) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
+      setActionError(""); // Clear any previous errors
+
+      const response = await updateUserStatus(inspectorId, "approve");
+
+      if (response.success) {
+        // Update the specific inspector in our state
+        setAllInspectors((prev) =>
+          prev.map((inspector) =>
+            inspector._id === inspectorId
+              ? { ...inspector, isApproved: true, isSuspended: false }
+              : inspector
+          )
+        );
+
+        // Show success message
+        setSuccessMessage(`${inspectorName} has been approved successfully!`);
+        setSuccess(true);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccess(false);
+          setSuccessMessage("");
+        }, 3000);
+      } else {
+        setActionError(response.message || "Failed to approve inspector");
+      }
+    } catch (err) {
+      console.error("Error approving inspector:", err);
+      setActionError("Failed to approve inspector");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
+    }
   };
+
+  // Handle suspend action
+  const handleSuspend = async (inspectorId, inspectorName) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
+      setActionError("");
+
+      const response = await updateUserStatus(inspectorId, "suspend");
+
+      if (response.success) {
+        setAllInspectors((prev) =>
+          prev.map((inspector) =>
+            inspector._id === inspectorId
+              ? { ...inspector, isSuspended: true }
+              : inspector
+          )
+        );
+
+        // Show success message
+        setSuccessMessage(`${inspectorName} has been suspended successfully!`);
+        setSuccess(true);
+
+        setTimeout(() => {
+          setSuccess(false);
+          setSuccessMessage("");
+        }, 3000);
+      } else {
+        setActionError(response.message || "Failed to suspend inspector");
+      }
+    } catch (err) {
+      console.error("Error suspending inspector:", err);
+      setActionError("Failed to suspend inspector");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
+    }
+  };
+
+  // Handle unsuspend action
+  const handleUnsuspend = async (inspectorId, inspectorName) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
+      setActionError("");
+
+      const response = await updateUserStatus(inspectorId, "unsuspend");
+
+      if (response.success) {
+        setAllInspectors((prev) =>
+          prev.map((inspector) =>
+            inspector._id === inspectorId
+              ? { ...inspector, isSuspended: false }
+              : inspector
+          )
+        );
+
+        // Show success message
+        setSuccessMessage(
+          `${inspectorName} has been unsuspended successfully!`
+        );
+        setSuccess(true);
+
+        setTimeout(() => {
+          setSuccess(false);
+          setSuccessMessage("");
+        }, 3000);
+      } else {
+        setActionError(response.message || "Failed to unsuspend inspector");
+      }
+    } catch (err) {
+      console.error("Error unsuspending inspector:", err);
+      setActionError("Failed to unsuspend inspector");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
+    }
+  };
+  // Determine action button based on inspector status
+  const getActionButton = (inspector) => {
+    if (!inspector.isApproved) {
+      return {
+        text: "Approve",
+        color: "bg-teal-600 hover:bg-teal-700 text-white",
+        icon: <Check className="text-white" size={16} />,
+        onClick: () => handleApprove(inspector._id, inspector.firstName),
+      };
+    } else if (inspector.isSuspended) {
+      return {
+        text: "Unsuspend",
+        color: "bg-green-600 hover:bg-green-700 text-white",
+        icon: <CheckCircle className="text-white" size={16} />,
+        onClick: () => handleUnsuspend(inspector._id, inspector.firstName),
+      };
+    } else {
+      return {
+        text: "Suspend",
+        color: "bg-red-600 hover:bg-red-700 text-white",
+        icon: <Ban className="text-white" size={16} />,
+        onClick: () => handleSuspend(inspector._id, inspector.firstName),
+      };
+    }
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  // Pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push("...");
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
+  // Calculate showing range
+  const getShowingRange = () => {
+    const start =
+      filteredInspectors.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+    const end = Math.min(currentPage * itemsPerPage, filteredInspectors.length);
+    return { start, end, total: filteredInspectors.length };
+  };
+
+  if (loading && paginatedInspectors.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 md:p-6 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-8 w-8 text-teal-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading inspectors...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { start, end, total } = getShowingRange();
+  const hasFilters = searchTerm || filterStatus !== "all";
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div >
+      <div>
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Inspector List</h1>
-          <p className="text-gray-600 mt-1">Manage all inspectors in the system</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+            Inspector List
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage all inspectors in the system
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+            <p className="font-medium">Error: {error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="text-sm text-red-600 hover:text-red-800 underline mt-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 flex items-center gap-2">
+            <CheckCircle size={20} />
+            <span className="text-sm font-medium">{successMessage}</span>
+            <button
+              onClick={() => {
+                setSuccess(false);
+                setSuccessMessage("");
+              }}
+              className="ml-auto text-green-600 hover:text-green-800"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Action Error Message */}
+        {actionError && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+            <p className="font-medium">Error: {actionError}</p>
+            <button
+              onClick={() => setActionError("")}
+              className="text-sm text-red-600 hover:text-red-800 underline mt-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Search and Filter Bar - Desktop */}
+        <div className="hidden md:flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-md">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder="Search by name, email, or user ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            />
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter - Desktop */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Status:</span>
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="all">All Inspectors</option>
+              <option value="pending">Pending Approval</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {hasFilters && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setFilterStatus("all");
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Search and Filter Bar - Mobile */}
+        <div className="md:hidden space-y-3 mb-6">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder="Search inspectors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            />
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700"
+            >
+              <Filter size={18} />
+              Filter
+              {hasFilters && (
+                <span className="ml-1 bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  !
+                </span>
+              )}
+            </button>
+
+            <div className="text-sm text-gray-600">
+              {total} inspector{total !== 1 ? "s" : ""}
+            </div>
+          </div>
+
+          {/* Mobile Filters Dropdown */}
+          {showMobileFilters && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium text-gray-800">Filter by Status</h3>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="text-gray-500"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {["all", "pending", "active", "suspended"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      setFilterStatus(status);
+                      setCurrentPage(1);
+                      setShowMobileFilters(false);
+                    }}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                      filterStatus === status
+                        ? "bg-teal-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {status === "all" && "All"}
+                    {status === "pending" && "Pending"}
+                    {status === "active" && "Active"}
+                    {status === "suspended" && "Suspended"}
+                  </button>
+                ))}
+              </div>
+              {hasFilters && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterStatus("all");
+                    setCurrentPage(1);
+                    setShowMobileFilters(false);
+                  }}
+                  className="w-full mt-4 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Table Container */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-                    Inspector name
-                  </th>
-                  <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-                    Email
-                  </th>
-                  <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-                    Fee status
-                  </th>
-                  <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-                    Agreed fee
-                  </th>
-                  <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {inspectors.map((inspector) => (
-                  <tr key={inspector.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                          <User size={16} className="text-gray-600" />
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            {paginatedInspectors.length === 0 ? (
+              <div className="p-8 text-center">
+                <User className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                <p className="text-gray-600">
+                  {hasFilters
+                    ? "No inspectors found matching your criteria"
+                    : "No inspectors found"}
+                </p>
+                {hasFilters && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilterStatus("all");
+                      setCurrentPage(1);
+                    }}
+                    className="mt-2 text-sm text-teal-600 hover:text-teal-800"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                      Inspector name
+                    </th>
+                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                      Email
+                    </th>
+                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                      User ID
+                    </th>
+                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                      Status
+                    </th>
+                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {paginatedInspectors.map((inspector) => {
+                    const action = getActionButton(inspector);
+                    const isLoading = actionLoading[inspector._id];
+
+                    return (
+                      <tr
+                        key={inspector._id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <User size={16} className="text-gray-600" />
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-gray-800 block">
+                                {inspector.firstName} {inspector.lastName}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {!inspector.isApproved
+                                  ? "Pending Approval"
+                                  : inspector.isSuspended
+                                  ? "Suspended"
+                                  : "Active"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm text-gray-600">
+                            {inspector.email}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm font-medium text-gray-800">
+                            {inspector.userId}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              !inspector.isApproved
+                                ? "bg-yellow-100 text-yellow-800"
+                                : inspector.isSuspended
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {!inspector.isApproved
+                              ? "Pending"
+                              : inspector.isSuspended
+                              ? "Suspended"
+                              : "Active"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <button
+                            onClick={action.onClick}
+                            disabled={isLoading}
+                            className={`px-4 py-2 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="animate-spin h-4 w-4" />
+                            ) : (
+                              <>
+                                {action.icon}
+                                {action.text}
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden">
+            {paginatedInspectors.length === 0 ? (
+              <div className="p-8 text-center">
+                <User className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                <p className="text-gray-600">
+                  {hasFilters
+                    ? "No inspectors found matching your criteria"
+                    : "No inspectors found"}
+                </p>
+                {hasFilters && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilterStatus("all");
+                      setCurrentPage(1);
+                    }}
+                    className="mt-2 text-sm text-teal-600 hover:text-teal-800"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {paginatedInspectors.map((inspector) => {
+                  const action = getActionButton(inspector);
+                  const isLoading = actionLoading[inspector._id];
+
+                  return (
+                    <div key={inspector._id} className="p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User size={18} className="text-gray-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-800">
+                              {inspector.firstName} {inspector.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {inspector.email}
+                            </p>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium text-gray-800">
-                          {inspector.name}
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            !inspector.isApproved
+                              ? "bg-yellow-100 text-yellow-800"
+                              : inspector.isSuspended
+                              ? "bg-red-100 text-red-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {!inspector.isApproved
+                            ? "Pending"
+                            : inspector.isSuspended
+                            ? "Suspended"
+                            : "Active"}
                         </span>
                       </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="text-sm text-gray-600">{inspector.email}</span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`text-sm font-medium ${
-                        inspector.feeStatus === "-" 
-                          ? "text-gray-500" 
-                          : "text-gray-800"
-                      }`}>
-                        {inspector.feeStatus}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`text-sm font-medium ${
-                        inspector.agreedFee === "-" 
-                          ? "text-gray-500" 
-                          : "text-gray-800"
-                      }`}>
-                        {inspector.agreedFee}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
+
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">User ID</p>
+                          <p className="text-sm font-medium text-gray-800">
+                            {inspector.userId}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Status</p>
+                          <p className="text-sm font-medium text-gray-800">
+                            {!inspector.isApproved
+                              ? "Pending Approval"
+                              : inspector.isSuspended
+                              ? "Suspended"
+                              : "Active"}
+                          </p>
+                        </div>
+                      </div>
+
                       <button
-                        onClick={() => handleAction(inspector.id, inspector.action)}
-                        className={`py-1.5 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${inspector.actionColor}`}
+                        onClick={action.onClick}
+                        disabled={isLoading}
+                        className={`w-full px-4 py-2 text-sm flex justify-center gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {inspector.action} {inspector.action === "Approve" ? <Check className=" text-teal-600"/> : <Trash className="text-sm text-red-500"/>}
+                        {isLoading ? (
+                          <Loader2 className="animate-spin h-4 w-4" />
+                        ) : (
+                          <>
+                            {action.icon}
+                            {action.text}
+                          </>
+                        )}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
-          <div className="border-t border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-center space-x-4">
-              {/* Previous Button */}
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={16} />
-                <span>Previous</span>
-              </button>
+          {filteredInspectors.length > 0 && totalPages > 1 && (
+            <div className="border-t border-gray-200 px-4 md:px-6 py-4">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Showing {start} to {end} of {total} inspector
+                  {total !== 1 ? "s" : ""}
+                  {hasFilters && (
+                    <span className="ml-2 text-teal-600">• Filtered</span>
+                  )}
+                </div>
 
-              {/* Page Numbers */}
-              <div className="flex items-center space-x-2">
-                {[1, 2, 3, 4, 5, 6].map((page) => (
+                <div className="flex items-center space-x-4">
+                  {/* Previous Button */}
                   <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 flex items-center justify-center text-sm rounded transition-colors ${
-                      currentPage === page
-                        ? "bg-teal-600 text-white font-semibold"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={currentPage === 1}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {page}
+                    <ChevronLeft size={16} />
+                    <span className="hidden sm:inline">Previous</span>
                   </button>
-                ))}
-                
-                {/* Ellipsis */}
-                <span className="text-gray-400 px-1">--</span>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-1">
+                    {getPageNumbers().map((page, index) =>
+                      page === "..." ? (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="text-gray-400 px-1"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-8 h-8 flex items-center justify-center text-sm rounded transition-colors ${
+                            currentPage === page
+                              ? "bg-teal-600 text-white font-semibold"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
-
-              {/* Next Button */}
-              <button
-                onClick={() => setCurrentPage(Math.min(6, currentPage + 1))}
-                disabled={currentPage === 6}
-                className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <span>Next</span>
-                <ChevronRight size={16} />
-              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Add New Inspector Button */}
-        <div className="mt-6 flex justify-end">
-          <button className="px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center space-x-2">
-            <User size={18} />
-            <span>Add New Inspector</span>
-          </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-
-// "use client";
-
-// import { useState, useEffect } from "react";
-// import { Check, ChevronLeft, ChevronRight, MoreVertical, Trash, User, Loader2, Search } from "lucide-react";
-// import { getJobs } from "@/action/job.action";
-
-// export default function InspectorPage() {
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const [inspectors, setInspectors] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [totalPages, setTotalPages] = useState(1);
-//   const [totalInspectors, setTotalInspectors] = useState(0);
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [itemsPerPage, setItemsPerPage] = useState(10);
-
-//   // Fetch inspectors from API
-//   const fetchInspectors = async (page = 1, limit = 10) => {
-//     setLoading(true);
-//     setError(null);
-    
-//     try {
-//       // Fixed: Call getJobs with parameters correctly
-//       const data = await getJobs(page, limit);
-      
-//       console.log("API Response:", data);
-
-//       if (data.success) {
-//         // Transform API data to match your table structure
-//         const transformedData = data.data.map((job, index) => ({
-//           id: job._id || index,
-//           name: `${job.createdBy?.firstName || 'Unknown'} ${job.createdBy?.lastName || ''}`.trim(),
-//           email: job.createdBy?.email || 'N/A',
-//           feeStatus: job.feeStatus || '-',
-//           agreedFee: job.agreedFee ? `$${job.agreedFee}` : '-',
-//           action: job.inspector?.role === "Unknown" ? "Approve" : "Remove",
-//           actionColor: job.inspector?.role === "Unknown" ? "text-teal-600 hover:text-teal-700" : "text-red-600 hover:text-red-700",
-//           // Additional fields from API if needed
-//           orderId: job.orderId,
-//           streetAddress: job.streetAddress,
-//           formType: job.formType,
-//           createdAt: job.createdAt,
-//           dueDate: job.dueDate
-//         }));
-        
-//         setInspectors(transformedData);
-//         setTotalPages(data.metaData?.totalPage || 1);
-//         setTotalInspectors(data.metaData?.totalJob || 0);
-//         setItemsPerPage(data.metaData?.limit || 10);
-//       } else {
-//         throw new Error(data.message || 'Failed to fetch inspectors');
-//       }
-//     } catch (err) {
-//       setError(err.message);
-//       console.error('Error fetching inspectors:', err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // Fetch data when page changes
-//   useEffect(() => {
-//     fetchInspectors(currentPage);
-//   }, [currentPage]);
-
-//   // Handle page change
-//   const handlePageChange = (page) => {
-//     if (page >= 1 && page <= totalPages) {
-//       setCurrentPage(page);
-//       fetchInspectors(page);
-//     }
-//   };
-
-//   // Handle actions
-//   const handleAction = async (inspectorId, action) => {
-//     console.log(`Clicked ${action} for inspector ${inspectorId}`);
-    
-//     try {
-//       // Update API when action is performed
-//       // This is a placeholder - update with your actual API endpoint
-//       const response = await fetch(`/api/v1/job/${inspectorId}`, {
-//         method: 'PATCH',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({
-//           status: action === "Approve" ? "approved" : "removed"
-//         })
-//       });
-      
-//       if (response.ok) {
-//         // Refresh the data
-//         fetchInspectors(currentPage);
-//       }
-//     } catch (error) {
-//       console.error('Error performing action:', error);
-//     }
-//   };
-
-//   // Handle search
-//   const handleSearch = (e) => {
-//     setSearchTerm(e.target.value);
-//   };
-
-//   // Filter inspectors based on search term
-//   const filteredInspectors = inspectors.filter(inspector => 
-//     inspector.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//     inspector.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//     inspector.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//     inspector.feeStatus.toLowerCase().includes(searchTerm.toLowerCase())
-//   );
-
-//   // Generate page numbers for pagination
-//   const getPageNumbers = () => {
-//     const pages = [];
-//     const maxPagesToShow = 5;
-    
-//     if (totalPages <= maxPagesToShow) {
-//       // Show all pages if total pages is less than max
-//       for (let i = 1; i <= totalPages; i++) {
-//         pages.push(i);
-//       }
-//     } else {
-//       // Show limited pages with ellipsis
-//       if (currentPage <= 3) {
-//         // Near the start
-//         for (let i = 1; i <= 4; i++) {
-//           pages.push(i);
-//         }
-//         pages.push('...');
-//         pages.push(totalPages);
-//       } else if (currentPage >= totalPages - 2) {
-//         // Near the end
-//         pages.push(1);
-//         pages.push('...');
-//         for (let i = totalPages - 3; i <= totalPages; i++) {
-//           pages.push(i);
-//         }
-//       } else {
-//         // In the middle
-//         pages.push(1);
-//         pages.push('...');
-//         pages.push(currentPage - 1);
-//         pages.push(currentPage);
-//         pages.push(currentPage + 1);
-//         pages.push('...');
-//         pages.push(totalPages);
-//       }
-//     }
-    
-//     return pages;
-//   };
-
-//   // Format date for display
-//   const formatDate = (dateString) => {
-//     if (!dateString) return 'N/A';
-//     const date = new Date(dateString);
-//     return date.toLocaleDateString('en-US', {
-//       year: 'numeric',
-//       month: 'short',
-//       day: 'numeric'
-//     });
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-//       <div className="max-w-7xl mx-auto">
-//         {/* Header */}
-//         <div className="mb-6">
-//           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-//             <div>
-//               <h1 className="text-xl md:text-3xl font-bold text-gray-800">Inspector List</h1>
-//               <p className="text-gray-600 mt-1 text-sm md:text-base">
-//                 {loading ? 'Loading...' : `Total ${totalInspectors} inspectors found`}
-//               </p>
-//             </div>
-            
-//             {/* Search Bar */}
-//             <div className="relative">
-//               <div className="relative">
-//                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-//                 <input
-//                   type="text"
-//                   placeholder="Search inspectors..."
-//                   value={searchTerm}
-//                   onChange={handleSearch}
-//                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-//                 />
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Stats Cards */}
-//         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-//           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-//             <p className="text-sm text-gray-600">Total Inspectors</p>
-//             <p className="text-2xl font-bold text-gray-800">{totalInspectors}</p>
-//           </div>
-//           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-//             <p className="text-sm text-gray-600">Active Jobs</p>
-//             <p className="text-2xl font-bold text-gray-800">
-//               {inspectors.filter(i => i.action === "Approve").length}
-//             </p>
-//           </div>
-//           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-//             <p className="text-sm text-gray-600">Pending Approval</p>
-//             <p className="text-2xl font-bold text-gray-800">
-//               {inspectors.filter(i => i.action === "Remove").length}
-//             </p>
-//           </div>
-//           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-//             <p className="text-sm text-gray-600">Current Page</p>
-//             <p className="text-2xl font-bold text-gray-800">{currentPage} / {totalPages}</p>
-//           </div>
-//         </div>
-
-//         {/* Error Message */}
-//         {error && (
-//           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-//             <p className="text-red-600">Error: {error}</p>
-//             <button
-//               onClick={() => fetchInspectors(currentPage)}
-//               className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
-//             >
-//               Retry
-//             </button>
-//           </div>
-//         )}
-
-//         {/* Table Container */}
-//         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-//           {loading ? (
-//             // Loading State
-//             <div className="flex justify-center items-center py-20">
-//               <Loader2 className="animate-spin text-teal-600" size={32} />
-//               <span className="ml-3 text-gray-600">Loading inspectors...</span>
-//             </div>
-//           ) : (
-//             <>
-//               {/* Table - Mobile View */}
-//               <div className="md:hidden">
-//                 {filteredInspectors.length === 0 && !searchTerm ? (
-//                   <div className="text-center py-8">
-//                     <p className="text-gray-500">No inspectors found</p>
-//                   </div>
-//                 ) : filteredInspectors.length === 0 && searchTerm ? (
-//                   <div className="text-center py-8">
-//                     <p className="text-gray-500">No inspectors match your search</p>
-//                   </div>
-//                 ) : (
-//                   <div className="divide-y divide-gray-200">
-//                     {filteredInspectors.map((inspector) => (
-//                       <div key={inspector.id} className="p-4 hover:bg-gray-50">
-//                         <div className="flex items-center justify-between mb-3">
-//                           <div className="flex items-center space-x-3">
-//                             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-//                               <User size={20} className="text-gray-600" />
-//                             </div>
-//                             <div>
-//                               <p className="font-medium text-gray-800">{inspector.name}</p>
-//                               <p className="text-sm text-gray-600">{inspector.email}</p>
-//                             </div>
-//                           </div>
-//                           <button
-//                             onClick={() => handleAction(inspector.id, inspector.action)}
-//                             className={`px-3 py-1 text-xs flex items-center gap-1 rounded-lg transition-colors ${inspector.actionColor}`}
-//                           >
-//                             {inspector.action === "Approve" ? <Check size={14} /> : <Trash size={14} />}
-//                             <span>{inspector.action}</span>
-//                           </button>
-//                         </div>
-                        
-//                         <div className="grid grid-cols-2 gap-2 text-sm">
-//                           <div>
-//                             <p className="text-gray-500">Fee Status</p>
-//                             <p className="font-medium">{inspector.feeStatus}</p>
-//                           </div>
-//                           <div>
-//                             <p className="text-gray-500">Agreed Fee</p>
-//                             <p className="font-medium">{inspector.agreedFee}</p>
-//                           </div>
-//                           {inspector.orderId && (
-//                             <div className="col-span-2">
-//                               <p className="text-gray-500">Order ID</p>
-//                               <p className="font-medium">{inspector.orderId}</p>
-//                             </div>
-//                           )}
-//                           {inspector.dueDate && (
-//                             <div className="col-span-2">
-//                               <p className="text-gray-500">Due Date</p>
-//                               <p className="font-medium">{formatDate(inspector.dueDate)}</p>
-//                             </div>
-//                           )}
-//                         </div>
-//                       </div>
-//                     ))}
-//                   </div>
-//                 )}
-//               </div>
-
-//               {/* Table - Desktop View */}
-//               <div className="hidden md:block overflow-x-auto">
-//                 <table className="w-full">
-//                   <thead className="bg-gray-50">
-//                     <tr>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Inspector name
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Email
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Fee status
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Agreed fee
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Order ID
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Due Date
-//                       </th>
-//                       <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
-//                         Action
-//                       </th>
-//                     </tr>
-//                   </thead>
-//                   <tbody className="divide-y divide-gray-200">
-//                     {filteredInspectors.length === 0 ? (
-//                       <tr>
-//                         <td colSpan="7" className="py-8 text-center text-gray-500">
-//                           {searchTerm ? "No inspectors match your search" : "No inspectors found"}
-//                         </td>
-//                       </tr>
-//                     ) : (
-//                       filteredInspectors.map((inspector) => (
-//                         <tr key={inspector.id} className="hover:bg-gray-50 transition-colors">
-//                           <td className="py-4 px-6">
-//                             <div className="flex items-center space-x-3">
-//                               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-//                                 <User size={16} className="text-gray-600" />
-//                               </div>
-//                               <span className="text-sm font-medium text-gray-800">
-//                                 {inspector.name}
-//                               </span>
-//                             </div>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <span className="text-sm text-gray-600">{inspector.email}</span>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <span className={`text-sm font-medium ${
-//                               inspector.feeStatus === "-" 
-//                                 ? "text-gray-500" 
-//                                 : "text-gray-800"
-//                             }`}>
-//                               {inspector.feeStatus}
-//                             </span>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <span className={`text-sm font-medium ${
-//                               inspector.agreedFee === "-" 
-//                                 ? "text-gray-500" 
-//                                 : "text-gray-800"
-//                             }`}>
-//                               {inspector.agreedFee}
-//                             </span>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <span className="text-sm text-gray-600 font-mono">
-//                               {inspector.orderId || 'N/A'}
-//                             </span>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <span className="text-sm text-gray-600">
-//                               {formatDate(inspector.dueDate)}
-//                             </span>
-//                           </td>
-//                           <td className="py-4 px-6">
-//                             <button
-//                               onClick={() => handleAction(inspector.id, inspector.action)}
-//                               className={`py-1.5 px-3 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${inspector.actionColor}`}
-//                             >
-//                               {inspector.action === "Approve" ? (
-//                                 <Check className="text-teal-600" size={14} />
-//                               ) : (
-//                                 <Trash className="text-red-500" size={14} />
-//                               )}
-//                               <span>{inspector.action}</span>
-//                             </button>
-//                           </td>
-//                         </tr>
-//                       ))
-//                     )}
-//                   </tbody>
-//                 </table>
-//               </div>
-
-//               {/* Pagination */}
-//               {filteredInspectors.length > 0 && (
-//                 <div className="border-t border-gray-200 px-4 md:px-6 py-4">
-//                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-//                     {/* Items per page info */}
-//                     <div className="text-sm text-gray-600">
-//                       Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-//                       <span className="font-medium">
-//                         {Math.min(currentPage * itemsPerPage, totalInspectors)}
-//                       </span>{" "}
-//                       of <span className="font-medium">{totalInspectors}</span> inspectors
-//                     </div>
-
-//                     {/* Page Navigation */}
-//                     <div className="flex items-center space-x-2">
-//                       {/* Previous Button */}
-//                       <button
-//                         onClick={() => handlePageChange(currentPage - 1)}
-//                         disabled={currentPage === 1}
-//                         className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg border border-gray-300"
-//                       >
-//                         <ChevronLeft size={16} />
-//                         <span className="hidden sm:inline">Previous</span>
-//                       </button>
-
-//                       {/* Page Numbers */}
-//                       <div className="flex items-center space-x-1">
-//                         {getPageNumbers().map((page, index) => (
-//                           page === '...' ? (
-//                             <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
-//                               ...
-//                             </span>
-//                           ) : (
-//                             <button
-//                               key={page}
-//                               onClick={() => handlePageChange(page)}
-//                               className={`w-8 h-8 flex items-center justify-center text-sm rounded transition-colors ${
-//                                 currentPage === page
-//                                   ? "bg-teal-600 text-white font-semibold"
-//                                   : "text-gray-600 hover:bg-gray-100 border border-gray-300"
-//                               }`}
-//                             >
-//                               {page}
-//                             </button>
-//                           )
-//                         ))}
-//                       </div>
-
-//                       {/* Next Button */}
-//                       <button
-//                         onClick={() => handlePageChange(currentPage + 1)}
-//                         disabled={currentPage === totalPages}
-//                         className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-lg border border-gray-300"
-//                       >
-//                         <span className="hidden sm:inline">Next</span>
-//                         <ChevronRight size={16} />
-//                       </button>
-//                     </div>
-//                   </div>
-//                 </div>
-//               )}
-//             </>
-//           )}
-//         </div>
-
-//         {/* Add New Inspector Button */}
-//         <div className="mt-6 flex justify-end">
-//           <button className="px-4 md:px-6 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center space-x-2">
-//             <User size={18} />
-//             <span>Add New Inspector</span>
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
