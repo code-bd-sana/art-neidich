@@ -27,7 +27,7 @@ const MainCard = () => {
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [expandedCard, setExpandedCard] = useState(null);
 
-  const filterOptions = ["In Progress", "Completed", "Rejected"];
+  const filterOptions = ["In Progress", "Submitted", "Completed", "Rejected"];
   const filterRef = useRef(null);
 
   // Close filter when clicking outside
