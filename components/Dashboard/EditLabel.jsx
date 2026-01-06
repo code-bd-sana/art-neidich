@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 
 const EditLabel = ({ label, onClose, onSave }) => {
-  const [labelName, setLabelName] = useState(label?.name || "");
+  const [labelName, setLabelName] = useState(label?.label || "");
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
@@ -15,7 +15,10 @@ const EditLabel = ({ label, onClose, onSave }) => {
       return;
     }
     
-    onSave({ ...label, name: labelName });
+    onSave({ 
+      _id: label._id, 
+      label: labelName.trim() 
+    });
   };
 
   return (
@@ -42,6 +45,11 @@ const EditLabel = ({ label, onClose, onSave }) => {
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <span className="font-bold">Label Name*</span>
+              {label?.label && (
+                <span className="ml-2 text-sm text-gray-500 font-normal">
+                  (Current: {label.label})
+                </span>
+              )}
             </label>
             <input
               type="text"

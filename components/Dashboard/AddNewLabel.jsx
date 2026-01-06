@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 
-const AddNewLabel = ({ onClose, onSave }) => {
+const AddNewLabel = ({ onClose, onSave, loading = false }) => {
   const [labelName, setLabelName] = useState("");
   const [error, setError] = useState("");
 
@@ -15,7 +15,7 @@ const AddNewLabel = ({ onClose, onSave }) => {
       return;
     }
     
-    onSave(labelName);
+    onSave(labelName.trim());
   };
 
   return (
@@ -29,9 +29,10 @@ const AddNewLabel = ({ onClose, onSave }) => {
       {/* Modal */}
       <div className="relative bg-white rounded-lg w-full max-w-sm mx-4">
         <div className="p-4 border-b border-gray-300">
-          <h2 className="text-lg font-semibold text-gray-800">Add New Label</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Create New Label</h2>
           <button
             onClick={onClose}
+            disabled={loading}
             className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
           >
             <X size={20} />
@@ -55,6 +56,7 @@ const AddNewLabel = ({ onClose, onSave }) => {
                 error ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-teal-500"
               }`}
               autoFocus
+              disabled={loading}
             />
             {error && (
               <p className="mt-1 text-sm text-red-600">{error}</p>
@@ -65,15 +67,17 @@ const AddNewLabel = ({ onClose, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+              disabled={loading}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
+              disabled={loading || !labelName.trim()}
+              className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add Label
+              {loading ? "Creating..." : "Create Label"}
             </button>
           </div>
         </form>

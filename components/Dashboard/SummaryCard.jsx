@@ -59,9 +59,9 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
       actionColor: "text-green-800 hover:text-purple-800",
     },
   ];
-
+// w-3/4 md:w-64 fixed right-0 top-[70px] bottom-0
   return (
-    <div className="h-screen flex flex-col bg-[#EFEFF1] border-l border-gray-200 overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#EFEFF1] border-l border-gray-200 overflow-hidden ">
       {/* Header */}
       <div className="p-2 border-b border-gray-200 flex items-center justify-between shrink-0">
         {!isCollapsed && (
