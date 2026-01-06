@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { resetPasswordAction } from '@/action/auth.action';
+import { Suspense } from 'react';
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -16,7 +17,8 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [tokenValid, setTokenValid] = useState(false);
 
-  useEffect(() => {
+  // useEffect to check token validity
+  useState(() => {
     // Check if token exists in URL
     if (!token) {
       setError('Invalid or missing reset token. Please request a new reset link.');
@@ -24,7 +26,7 @@ export default function ResetPassword() {
     } else {
       setTokenValid(true);
     }
-  }, [token]);
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,7 +71,7 @@ export default function ResetPassword() {
           </div>
           <button
             onClick={() => router.push('/forgot-password')}
-            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#2D8D7C] hover:bg-[#036855] focus:outline-none"
+            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Request new reset link
           </button>
@@ -104,7 +106,7 @@ export default function ResetPassword() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Enter new password (min 6 characters)"
               />
             </div>
@@ -121,7 +123,7 @@ export default function ResetPassword() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Confirm new password"
               />
             </div>
@@ -143,7 +145,7 @@ export default function ResetPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#2D8D7C] hover:bg-[#0a6151] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Resetting password...' : 'Reset password'}
             </button>
@@ -153,12 +155,28 @@ export default function ResetPassword() {
         <div className="text-center">
           <button
             onClick={() => router.push('/login')}
-            className="font-medium text-[#2D8D7C] hover:text-[#006956]"
+            className="font-medium text-blue-600 hover:text-blue-500"
           >
             Back to login
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the component with Suspense
+export default function ResetPassword() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading reset password page...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
