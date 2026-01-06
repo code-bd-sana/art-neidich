@@ -85,4 +85,3 @@ export async function updateUserStatus(userId, action) {
     throw error;
   }
 }
-// localhost:8080/api/v1/user?page=1&limit=10&search=&role=2

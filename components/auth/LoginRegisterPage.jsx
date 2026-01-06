@@ -2,6 +2,7 @@
 
 import { loginAction, registerAction } from "@/action/auth.action";
 import { Eye, EyeClosed, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function LoginRegisterPage() {
@@ -165,7 +166,7 @@ export default function LoginRegisterPage() {
             <button
               className={`flex-1 py-4 text-center font-medium transition-colors ${
                 activeTab === "login"
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  ? "text-[#2D8D7C] border-b-2 border-[#2D8D7C] bg-blue-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               onClick={() => setActiveTab("login")}
@@ -175,7 +176,7 @@ export default function LoginRegisterPage() {
             <button
               className={`flex-1 py-4 text-center font-medium transition-colors ${
                 activeTab === "register"
-                  ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                  ? "text-[#2D8D7C] border-b-2 border-[#2D8D7C] bg-blue-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               onClick={() => setActiveTab("register")}
@@ -216,7 +217,7 @@ export default function LoginRegisterPage() {
                     value={loginData.email}
                     onChange={handleLoginChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors"
                     placeholder="admin@example.com"
                   />
                 </div>
@@ -226,7 +227,10 @@ export default function LoginRegisterPage() {
                     htmlFor="password"
                     className="block text-sm font-medium text-gray-700 mb-2"
                   >
-                    Password
+                    <div className="flex justify-between">
+                      <p >Password</p>
+                    <Link href={"/forgot-password"}><p className="text-[#2D8D7C] underline">Forgot password?</p></Link>
+                    </div>
                   </label>
                   <div className="relative">
                     <input
@@ -236,7 +240,7 @@ export default function LoginRegisterPage() {
                       value={loginData.password}
                       onChange={handleLoginChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-12"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors pr-12"
                       placeholder="Type your Password"
                     />
                     <button
@@ -252,30 +256,10 @@ export default function LoginRegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2D8D7C] text-white py-3 px-4 rounded-lg hover:bg-[#09705d] focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
+                    <span className="flex items-center justify-center">   
                       Signing in...
                     </span>
                   ) : (
@@ -302,7 +286,7 @@ export default function LoginRegisterPage() {
                     value={registerData.firstName}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg  transition-colors"
                     placeholder="Your First Name"
                   />
                 </div>
@@ -321,7 +305,7 @@ export default function LoginRegisterPage() {
                     value={registerData.lastName}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors"
                     placeholder="Your Last Name"
                   />
                 </div>
@@ -340,7 +324,7 @@ export default function LoginRegisterPage() {
                     value={registerData.email}
                     onChange={handleRegisterChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors"
                     placeholder="your.email@example.com"
                   />
                 </div>
@@ -361,7 +345,7 @@ export default function LoginRegisterPage() {
                       onChange={handleRegisterChange}
                       required
                       minLength="6"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors pr-12"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors pr-12"
                       placeholder="Type your Password"
                     />
                     <button
@@ -387,7 +371,7 @@ export default function LoginRegisterPage() {
                     type="checkbox"
                     id="terms"
                     required
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-[#2D8D7C]  border-gray-300 rounded"
                   />
                   <label
                     htmlFor="terms"
@@ -396,14 +380,14 @@ export default function LoginRegisterPage() {
                     I agree to the{" "}
                     <a
                       href="/terms"
-                      className="text-blue-600 hover:text-blue-500"
+                      className="text-[#2D8D7C] hover:text-[#0e705e]"
                     >
                       Terms of Service
                     </a>{" "}
                     and{" "}
                     <a
                       href="/privacy"
-                      className="text-blue-600 hover:text-blue-500"
+                      className="text-[#2D8D7C] hover:text-[#0e705e]"
                     >
                       Privacy Policy
                     </a>
@@ -413,30 +397,11 @@ export default function LoginRegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2D8D7C] text-white py-3 px-4 rounded-lg hover:bg-[#066856] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
+                      
                       Creating Account...
                     </span>
                   ) : (
@@ -457,7 +422,7 @@ export default function LoginRegisterPage() {
                 onClick={() =>
                   setActiveTab(activeTab === "login" ? "register" : "login")
                 }
-                className="text-blue-600 hover:text-blue-500 font-medium"
+                className="text-[#2D8D7C] hover:text-[#176e5e] font-medium"
               >
                 {activeTab === "login" ? "Register here" : "Login here"}
               </button>

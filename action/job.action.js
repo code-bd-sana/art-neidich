@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
    GET /api/v1/job/
    Private Api
 ====================== */
-export async function getJobs(page, limit) {
+export async function getJobs(page, limit, search = "", status = "all") {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("token");
@@ -17,14 +17,19 @@ export async function getJobs(page, limit) {
       throw new Error("No authentication token found");
     }
 
-    const resp = await apiFetch(`/job?page=${page}&limit=${limit}`, {
+    // Construct URL with search parameter
+    const url = `/job?page=${page}&limit=${limit}${
+      search ? `&search=${encodeURIComponent(search)}` : ""
+    }&status=${status}`;
+
+    const resp = await apiFetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token.value}`,
       },
     });
-    // console.log(resp);
+
     return resp;
   } catch (error) {
     console.error("Get jobs error:", error);

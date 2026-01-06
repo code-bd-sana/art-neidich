@@ -30,6 +30,7 @@ export async function registerAction(formData) {
     throw error;
   }
 }
+
 /* ======================
    Login
    POST /auth/login
@@ -71,6 +72,7 @@ export async function loginAction(formData) {
     throw error;
   }
 }
+
 /* ======================
    Logout - Server Action
 ====================== */
@@ -159,6 +161,60 @@ export async function updateProfileAction(formData) {
   } catch (error) {
     console.error("Update profile error:", error);
     throw new Error(error.message || "Failed to update profile");
+  }
+}
+
+/* ======================
+   Forgot Password
+   POST /auth/forgot-password
+   Public Api
+====================== */
+export async function forgotPasswordAction(email, isWeb = true) {
+  try {
+    console.log("Forgot password action called for email:", email);
+    
+    const response = await apiFetch("/auth/forgot-password", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        webRequest: isWeb, // true for web, false for mobile
+      }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Forgot password action error:", error);
+    throw error;
+  }
+}
+
+/* ======================
+   Reset Password
+   POST /auth/reset-password
+   Public Api
+====================== */
+export async function resetPasswordAction(token, newPassword) {
+  try {
+    console.log("Reset password action called");
+    
+    const response = await apiFetch("/auth/reset-password", {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token,
+        newPassword: newPassword,
+      }),
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Reset password action error:", error);
+    throw error;
   }
 }
 

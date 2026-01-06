@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -24,32 +24,35 @@ const MainCard = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showFilter, setShowFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilters, setSelectedFilters] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState("all"); // Changed from array to string
   const [expandedCard, setExpandedCard] = useState(null);
 
-  const filterOptions = ["In Progress", "Submitted", "Completed", "Rejected"];
+  // Update filter options to match API status values
+  const filterOptions = [
+    { value: "all", label: "All Status" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "submitted", label: "Submitted" },
+    { value: "completed", label: "Completed" },
+    { value: "rejected", label: "Rejected" },
+  ];
+
   const filterRef = useRef(null);
 
-  // Close filter when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
-        setShowFilter(false);
-      }
+  // Debounced search function
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
     };
+  };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    // Fetch inspections from API
-    const fetchInspections = async (page = 1, limit = 10) => {
+  // Fetch inspections function - now includes status parameter
+  const fetchInspections = useCallback(
+    async (page = 1, limit = 10, search = "", status = "all") => {
       setLoading(true);
       try {
-        const data = await getJobs(page, limit);
+        const data = await getJobs(page, limit, search, status);
 
         if (data.success) {
           // Transform API data
@@ -75,20 +78,57 @@ const MainCard = () => {
       } finally {
         setLoading(false);
       }
+    },
+    []
+  );
+
+  // Initial fetch and fetch when page or status changes
+  useEffect(() => {
+    fetchInspections(currentPage, itemsPerPage, searchTerm, selectedStatus);
+  }, [currentPage, itemsPerPage, selectedStatus, fetchInspections, searchTerm]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const debouncedSearch = debounce((term) => {
+      setCurrentPage(1); // Reset to first page on new search
+      fetchInspections(1, itemsPerPage, term, selectedStatus);
+    }, 500); // 500ms debounce delay
+
+    debouncedSearch(searchTerm);
+
+    // Cleanup
+    return () => {
+      // Clear any pending debounced calls if component unmounts
     };
-    fetchInspections(currentPage, itemsPerPage);
-  }, [currentPage, itemsPerPage]);
+  }, [searchTerm, itemsPerPage, selectedStatus, fetchInspections]);
+
+  // Close filter when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilter(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "In Progress":
-        return "bg-blue-50 text-blue-700";
-      case "Completed":
-        return "bg-green-50 text-green-700";
-      case "Rejected":
-        return "bg-red-50 text-red-700";
-      default:
-        return "bg-gray-50 text-gray-700";
+    const statusLower = status?.toLowerCase() || "";
+
+    if (statusLower.includes("progress")) {
+      return "bg-blue-50 text-blue-700";
+    } else if (statusLower.includes("complete")) {
+      return "bg-green-50 text-green-700";
+    } else if (statusLower.includes("reject")) {
+      return "bg-red-50 text-red-700";
+    } else if (statusLower.includes("submit")) {
+      return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+    } else {
+      return "bg-gray-50 text-gray-700";
     }
   };
 
@@ -102,20 +142,8 @@ const MainCard = () => {
     });
   };
 
-  // Filter and search logic
-  const filteredInspections = inspections.filter((inspection) => {
-    const matchesSearch =
-      inspection.fileCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.inspector.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesFilter =
-      selectedFilters.length === 0 ||
-      selectedFilters.includes(inspection.reportStatusLabel);
-
-    return matchesSearch && matchesFilter;
-  });
+  // No frontend filtering needed since backend handles it
+  const filteredInspections = inspections; // Use all returned inspections
 
   // Pagination handlers
   const handlePrevious = () => {
@@ -134,16 +162,15 @@ const MainCard = () => {
     }
   };
 
-  const toggleFilter = (option) => {
-    if (selectedFilters.includes(option)) {
-      setSelectedFilters(selectedFilters.filter((f) => f !== option));
-    } else {
-      setSelectedFilters([...selectedFilters, option]);
-    }
+  const handleStatusChange = (statusValue) => {
+    setSelectedStatus(statusValue);
+    setCurrentPage(1); // Reset to first page when status changes
+    setShowFilter(false);
   };
 
   const clearFilters = () => {
-    setSelectedFilters([]);
+    setSelectedStatus("all");
+    setSearchTerm("");
     setShowFilter(false);
   };
 
@@ -189,6 +216,22 @@ const MainCard = () => {
     }
   };
 
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Handle clear search
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Get current filter label
+  const getCurrentFilterLabel = () => {
+    const option = filterOptions.find((opt) => opt.value === selectedStatus);
+    return option ? option.label : "All Status";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-6">
       {/* Mobile Header */}
@@ -205,30 +248,43 @@ const MainCard = () => {
               type="text"
               placeholder="Search inspections..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
+              onChange={handleSearchChange}
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-base"
             />
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
               size={20}
             />
+            {searchTerm && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Filter Button - Mobile */}
           <button
             onClick={() => setShowFilter(!showFilter)}
-            className="p-3 rounded-lg bg-white border border-gray-300 shrink-0"
+            className="p-3 rounded-lg bg-white border border-gray-300 shrink-0 flex items-center gap-2"
           >
             <Filter size={20} />
+            <span className="text-sm font-medium">
+              {getCurrentFilterLabel()}
+            </span>
           </button>
         </div>
 
         {/* Filter Mobile - Full screen overlay */}
         {showFilter && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
+          <div className="fixed inset-0 bg-black/50 bg-opacity-50 z-50 md:hidden">
             <div className="absolute bottom-0 w-full bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Filter</h2>
+                <h2 className="text-xl font-bold text-gray-800">
+                  Filter by Status
+                </h2>
                 <button
                   onClick={() => setShowFilter(false)}
                   className="text-gray-500"
@@ -237,33 +293,49 @@ const MainCard = () => {
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-medium text-gray-800">Status</h3>
+              <div className="space-y-2">
                 {filterOptions.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                  <button
+                    key={option.value}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent any default behavior
+                      handleStatusChange(option.value);
+                    }}
+                   
+                    className={`w-full text-left p-3 rounded-lg text-sm font-medium ${
+                      selectedStatus === option.value
+                        ? "bg-teal-50 text-teal-700 border border-teal-200"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
                   >
-                    <span className="text-gray-700">{option}</span>
-                    <input
-                      type="checkbox"
-                      checked={selectedFilters.includes(option)}
-                      onChange={() => toggleFilter(option)}
-                      className="h-5 w-5 text-teal-600"
-                    />
-                  </label>
+                    {option.label}
+                  </button>
                 ))}
               </div>
 
               <div className="mt-6 flex gap-3">
                 <button
-                  onClick={clearFilters}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    clearFilters();
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    clearFilters();
+                  }}
                   className="flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium"
                 >
                   Clear All
                 </button>
                 <button
-                  onClick={() => setShowFilter(false)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setShowFilter(false);
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    setShowFilter(false);
+                  }}
                   className="flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium"
                 >
                   Apply
@@ -279,58 +351,54 @@ const MainCard = () => {
           ref={filterRef}
         >
           <div className="flex items-center gap-3">
-            {selectedFilters.length > 0 && (
+            {selectedStatus !== "all" && (
               <button
                 onClick={clearFilters}
                 className="text-sm text-gray-600 hover:text-gray-800"
               >
-                Clear all
+                Clear filter
               </button>
             )}
           </div>
 
-          {showFilter && (
-            <div className="absolute top-52 left-1/2 transform -translate-x-1/2 w-64 bg-white shadow-xl border border-gray-200 rounded-lg p-4 z-10 md:left-auto md:right-6 md:transform-none">
-              <h3 className="font-medium text-gray-800 mb-3">
-                Filter by Status
-              </h3>
-              <div className="space-y-2">
-                {filterOptions.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedFilters.includes(option)}
-                      onChange={() => toggleFilter(option)}
-                      className="h-4 w-4 text-teal-600"
-                    />
-                    <span className="text-sm text-gray-700">{option}</span>
-                  </label>
-                ))}
+          <div className="relative">
+            {showFilter && (
+              <div className="absolute top-full right-0 -mt-4 w-64 bg-white shadow-xl border border-gray-200 rounded-lg p-3 z-10">
+                <h3 className="font-medium text-gray-800 mb-3">
+                  Filter by Status
+                </h3>
+                <div className="space-y-2">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleStatusChange(option.value)}
+                      className={`w-full text-left p-2 rounded text-sm font-medium ${
+                        selectedStatus === option.value
+                          ? "bg-teal-50 text-teal-700"
+                          : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Active Filters - Mobile */}
-        {selectedFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {selectedFilters.map((filter) => (
-              <span
-                key={filter}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-100 text-teal-800 rounded-full text-sm"
+        {/* Active Filter Badge - Mobile */}
+        {selectedStatus !== "all" && (
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-100 text-teal-800 rounded-full text-sm">
+              {getCurrentFilterLabel()}
+              <button
+                onClick={clearFilters}
+                className="text-teal-600 hover:text-teal-800"
               >
-                {filter}
-                <button
-                  onClick={() => toggleFilter(filter)}
-                  className="text-teal-600 hover:text-teal-800"
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
+                ✕
+              </button>
+            </span>
           </div>
         )}
       </div>
@@ -348,21 +416,18 @@ const MainCard = () => {
             <div className="bg-white rounded-xl shadow-sm p-8 text-center">
               <Search size={48} className="text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-800 mb-2">
-                {searchTerm || selectedFilters.length > 0
+                {searchTerm || selectedStatus !== "all"
                   ? "No matching inspections"
                   : "No inspections available"}
               </h3>
               <p className="text-gray-600 mb-6">
-                {searchTerm || selectedFilters.length > 0
+                {searchTerm || selectedStatus !== "all"
                   ? "Try adjusting your search or filters"
                   : "Check back later for new inspections"}
               </p>
-              {(searchTerm || selectedFilters.length > 0) && (
+              {(searchTerm || selectedStatus !== "all") && (
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedFilters([]);
-                  }}
+                  onClick={clearFilters}
                   className="px-6 py-3 bg-teal-600 text-white rounded-lg font-medium"
                 >
                   Clear all

@@ -32,6 +32,7 @@ export async function getReportById(id) {
     throw error;
   }
 }
+
 /* ======================
    Report
    PATCH /api/v1/report/:id/status
@@ -46,18 +47,17 @@ export async function updateReportStatus(id, status) {
       throw new Error("No authentication token found");
     }
 
-    const resp =  await apiFetch(`/report/${id}/status`, {
+    // Use apiFetch with correct path
+    const resp = await apiFetch(`/report/${id}/status`, {
       method: "PATCH",
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token.value}`, 
       },
-      body: {
-        "status": status
-      }
+     body: JSON.stringify({ status: status })
     });
-    // console.log(resp)
-    return resp
+
+    return resp;
   } catch (error) {
     console.error("Report status update error:", error);
     throw error;
