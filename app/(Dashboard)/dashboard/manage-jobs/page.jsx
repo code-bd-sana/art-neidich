@@ -208,106 +208,106 @@ export default function ManageJobs() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
 
-  if (!validateForm()) {
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    // Clean phone number 
-    const cleanPhone = formData.siteContactPhone.replace(/\D/g, '');
-    const formattedPhone = cleanPhone.startsWith('1') 
-      ? cleanPhone.substring(1) 
-      : cleanPhone;
-
-    // Format date properly
-    const formatDateForAPI = (dateString) => {
-      if (!dateString) return new Date().toISOString();
-      const date = new Date(dateString);
-      return date.toISOString();
-    };
-
-    // Prepare data for API with CORRECT field names and formats
-    const jobData = {
-      inspector: formData.inspector,
-      feeStatus: formData.feeStatus,
-      fhaCaseDetailsNo: formData.fhaCase,
-      streetAddress: formData.streetAddress,
-      siteContactPhone: formattedPhone, 
-      siteContactName: formData.siteContactName,
-      siteContactEmail: formData.siteContactEmail,
-      dueDate: formatDateForAPI(formData.dateDue),
-      specialNotesForInspector: formData.specialNotesForInspector,
-      formType: "RCI Residential Building Code Inspection", 
-      agreedFee: parseFloat(formData.agreedFee),
-      orderId: formData.orderId,
-      developmentName: formData.development,
-      specialNoteForApOrAr: formData.specialNoteForApOrAr,
-    };
-
-    // console.log("Submitting job data (FINAL):", jobData);
-
-    const response = await postJob(jobData);
-
-    if (response.success) {
-      setSuccess(true);
-
-      // Reset form
-      setFormData({
-        inspector: "",
-        feeStatus: "",
-        fhaCase: "",
-        streetAddress: "",
-        siteContactPhone: "",
-        siteContactName: "",
-        dateCreated: new Date().toLocaleDateString("en-GB"),
-        dateDue: "",
-        specialNotesForInspector: "",
-        formType: "RCI Residential Building Code Inspection",
-        agreedFee: "",
-        orderId: "",
-        development: "Histrung Heights",
-        specialNoteForApOrAr: "",
-        siteContactEmail: "",
-      });
-      setSelectedInspector(null);
-      setSelectedFeeType("Select");
-
-      setTimeout(() => {
-        setSuccess(false);
-      }, 5000);
-    } else {
-      setError(response.message || "Failed to create job");
+    if (!validateForm()) {
+      return;
     }
-  } catch (err) {
-    console.error("Error creating job:", err);
-    setError(err.message || "An error occurred while creating the job");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+
+    try {
+      // Clean phone number
+      const cleanPhone = formData.siteContactPhone.replace(/\D/g, "");
+      const formattedPhone = cleanPhone.startsWith("1")
+        ? cleanPhone.substring(1)
+        : cleanPhone;
+
+      // Format date properly
+      const formatDateForAPI = (dateString) => {
+        if (!dateString) return new Date().toISOString();
+        const date = new Date(dateString);
+        return date.toISOString();
+      };
+
+      // Prepare data for API with CORRECT field names and formats
+      const jobData = {
+        inspector: formData.inspector,
+        feeStatus: formData.feeStatus,
+        fhaCaseDetailsNo: formData.fhaCase,
+        streetAddress: formData.streetAddress,
+        siteContactPhone: formattedPhone,
+        siteContactName: formData.siteContactName,
+        siteContactEmail: formData.siteContactEmail,
+        dueDate: formatDateForAPI(formData.dateDue),
+        specialNotesForInspector: formData.specialNotesForInspector,
+        formType: "RCI Residential Building Code Inspection",
+        agreedFee: parseFloat(formData.agreedFee),
+        orderId: formData.orderId,
+        developmentName: formData.development,
+        specialNoteForApOrAr: formData.specialNoteForApOrAr,
+      };
+
+      // console.log("Submitting job data (FINAL):", jobData);
+
+      const response = await postJob(jobData);
+
+      if (response.success) {
+        setSuccess(true);
+
+        // Reset form
+        setFormData({
+          inspector: "",
+          feeStatus: "",
+          fhaCase: "",
+          streetAddress: "",
+          siteContactPhone: "",
+          siteContactName: "",
+          dateCreated: new Date().toLocaleDateString("en-GB"),
+          dateDue: "",
+          specialNotesForInspector: "",
+          formType: "RCI Residential Building Code Inspection",
+          agreedFee: "",
+          orderId: "",
+          development: "Histrung Heights",
+          specialNoteForApOrAr: "",
+          siteContactEmail: "",
+        });
+        setSelectedInspector(null);
+        setSelectedFeeType("Select");
+
+        setTimeout(() => {
+          setSuccess(false);
+        }, 5000);
+      } else {
+        setError(response.message || "Failed to create job");
+      }
+    } catch (err) {
+      console.error("Error creating job:", err);
+      setError(err.message || "An error occurred while creating the job");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="">
-        <div className="flex items-center justify-between mb-6">
+    <div className='min-h-screen bg-gray-50 p-4 md:p-6'>
+      <div className=''>
+        <div className='flex items-center justify-between mb-6'>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+            <h1 className='text-2xl md:text-3xl font-bold text-gray-800 mb-2'>
               Create new job
             </h1>
-            <p className="text-gray-600">
+            <p className='text-gray-600'>
               Fill in the details below to create a new inspection job
             </p>
           </div>
 
           {success && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg">
+            <div className='flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg'>
               <CheckCircle size={20} />
-              <span className="text-sm font-medium">
+              <span className='text-sm font-medium'>
                 Job created successfully!
               </span>
             </div>
@@ -315,12 +315,11 @@ export default function ManageJobs() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            <p className="font-medium">Error: {error}</p>
+          <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
+            <p className='font-medium'>Error: {error}</p>
             <button
               onClick={() => setError(null)}
-              className="text-sm text-red-600 hover:text-red-800 underline mt-1"
-            >
+              className='text-sm text-red-600 hover:text-red-800 underline mt-1'>
               Dismiss
             </button>
           </div>
@@ -328,26 +327,25 @@ export default function ManageJobs() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 text-sm"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+          className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 text-sm'>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8'>
             {/* Left Column */}
-            <div className="space-y-6">
+            <div className='space-y-6'>
               {/* Inspector Select Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Select Inspector*</span>
+              <div className='relative' ref={dropdownRef}>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Select Inspector*</span>
                 </label>
 
                 {/* Selected Inspector Display */}
                 <input
-                  type="hidden"
-                  name="inspector"
+                  type='hidden'
+                  name='inspector'
                   value={formData.inspector}
                   required
                 />
                 <button
-                  type="button"
+                  type='button'
                   onClick={() =>
                     setShowInspectorDropdown(!showInspectorDropdown)
                   }
@@ -355,8 +353,7 @@ export default function ManageJobs() {
                     !selectedInspector
                       ? "border-gray-300 text-gray-400"
                       : "border-gray-300 text-gray-800"
-                  }`}
-                >
+                  }`}>
                   <span>
                     {selectedInspector
                       ? `${selectedInspector.firstName} ${selectedInspector.lastName} (${selectedInspector.email})`
@@ -371,36 +368,36 @@ export default function ManageJobs() {
 
                 {/* Inspector Dropdown */}
                 {showInspectorDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col">
+                  <div className='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col'>
                     {/* Search Input */}
-                    <div className="p-3 border-b border-gray-200">
-                      <div className="relative">
+                    <div className='p-3 border-b border-gray-200'>
+                      <div className='relative'>
                         <Search
-                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                          className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
                           size={18}
                         />
                         <input
-                          type="text"
-                          placeholder="Search inspectors..."
+                          type='text'
+                          placeholder='Search inspectors...'
                           value={inspectorSearch}
                           onChange={(e) => setInspectorSearch(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500'
                           autoFocus
                         />
                       </div>
                     </div>
 
                     {/* Inspector List */}
-                    <div className="overflow-y-auto flex-1">
+                    <div className='overflow-y-auto flex-1'>
                       {loadingInspectors && inspectors.length === 0 ? (
-                        <div className="p-4 text-center">
-                          <Loader2 className="animate-spin mx-auto h-5 w-5 text-gray-400" />
-                          <p className="text-sm text-gray-500 mt-2">
+                        <div className='p-4 text-center'>
+                          <Loader2 className='animate-spin mx-auto h-5 w-5 text-gray-400' />
+                          <p className='text-sm text-gray-500 mt-2'>
                             Loading inspectors...
                           </p>
                         </div>
                       ) : inspectors.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">
+                        <div className='p-4 text-center text-gray-500'>
                           No inspectors found
                         </div>
                       ) : (
@@ -408,19 +405,18 @@ export default function ManageJobs() {
                           {inspectors.map((inspector) => (
                             <button
                               key={inspector._id}
-                              type="button"
+                              type='button'
                               onClick={() => handleInspectorSelect(inspector)}
                               className={`w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
                                 selectedInspector?._id === inspector._id
                                   ? "bg-teal-50"
                                   : ""
-                              }`}
-                            >
-                              <div className="font-medium text-gray-800">
+                              }`}>
+                              <div className='font-medium text-gray-800'>
                                 {inspector.firstName} {inspector.lastName} -{" "}
                                 {inspector.userId}
                               </div>
-                              <div className="text-sm text-gray-600">
+                              <div className='text-sm text-gray-600'>
                                 {inspector.email}
                               </div>
                             </button>
@@ -429,14 +425,13 @@ export default function ManageJobs() {
                           {/* Load More Button */}
                           {hasMoreInspectors && (
                             <button
-                              type="button"
+                              type='button'
                               onClick={loadMoreInspectors}
                               disabled={loadingInspectors}
-                              className="w-full px-4 py-3 text-center text-teal-600 hover:bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
+                              className='w-full px-4 py-3 text-center text-teal-600 hover:bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-2 disabled:opacity-50'>
                               {loadingInspectors ? (
                                 <>
-                                  <Loader2 className="animate-spin h-4 w-4" />
+                                  <Loader2 className='animate-spin h-4 w-4' />
                                   Loading...
                                 </>
                               ) : (
@@ -452,26 +447,25 @@ export default function ManageJobs() {
               </div>
 
               {/* Fee Status */}
-              <div className="relative">
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Fee Status*</span>
+              <div className='relative'>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Fee Status*</span>
                 </label>
-                <div className="relative">
+                <div className='relative'>
                   <input
-                    type="hidden"
-                    name="feeStatus"
+                    type='hidden'
+                    name='feeStatus'
                     value={formData.feeStatus}
                     required
                   />
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => setShowFeeTypeDropdown(!showFeeTypeDropdown)}
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white text-left flex justify-between items-center ${
                       selectedFeeType === "Select"
                         ? "border-gray-300 text-gray-400"
                         : "border-gray-300 text-gray-800"
-                    }`}
-                  >
+                    }`}>
                     <span>{selectedFeeType}</span>
                     <ChevronDown
                       className={`w-5 h-5 text-gray-400 transition-transform ${
@@ -481,14 +475,13 @@ export default function ManageJobs() {
                   </button>
 
                   {showFeeTypeDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className='absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto'>
                       {feeTypes.map((feeType) => (
                         <button
                           key={feeType}
-                          type="button"
+                          type='button'
                           onClick={() => handleFeeTypeSelect(feeType)}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                        >
+                          className='w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0'>
                           {feeType}
                         </button>
                       ))}
@@ -499,251 +492,244 @@ export default function ManageJobs() {
 
               {/* FHA Case Details */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">FHA Case Details*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>FHA Case Details*</span>
                 </label>
                 <input
-                  type="text"
-                  name="fhaCase"
+                  type='text'
+                  name='fhaCase'
                   value={formData.fhaCase}
                   onChange={handleChange}
-                  placeholder="e.g., 511-3746727"
+                  placeholder='e.g., 511-3746727'
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                 />
               </div>
 
               {/* Street Address */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Street Address*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Street Address*</span>
                 </label>
                 <input
-                  type="text"
-                  name="streetAddress"
+                  type='text'
+                  name='streetAddress'
                   value={formData.streetAddress}
                   onChange={handleChange}
-                  placeholder="e.g., 1184 Crestview Drive, San Jose, California 95132"
+                  placeholder='e.g., 1184 Crestview Drive, San Jose, California 95132'
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                 />
               </div>
 
               {/* Site Contact Phone */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Site Contact Phone*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Site Contact Phone*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                <div className='relative'>
+                  <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500'>
                     +1
                   </span>
                   <input
-                    type="tel"
-                    name="siteContactPhone"
+                    type='tel'
+                    name='siteContactPhone'
                     value={formData.siteContactPhone}
                     onChange={handleChange}
-                    placeholder="111 222 3333"
+                    placeholder='111 222 3333'
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                    className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                   />
                 </div>
               </div>
 
               {/* Site Contact Name */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Site Contact Name*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Site Contact Name*</span>
                 </label>
                 <input
-                  type="text"
-                  name="siteContactName"
+                  type='text'
+                  name='siteContactName'
                   value={formData.siteContactName}
                   onChange={handleChange}
-                  placeholder="John Doe"
+                  placeholder='John Doe'
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                 />
               </div>
 
               {/* Date Created */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Date Created*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Date Created*</span>
                 </label>
                 <input
-                  type="text"
-                  name="dateCreated"
+                  type='text'
+                  name='dateCreated'
                   value={formData.dateCreated}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-gray-50 cursor-not-allowed'
                   readOnly
                 />
               </div>
 
               {/* Note to Inspector */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Note to Inspector*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Note to Inspector*</span>
                 </label>
                 <textarea
-                  name="specialNotesForInspector"
+                  name='specialNotesForInspector'
                   value={formData.specialNotesForInspector}
                   onChange={handleChange}
-                  placeholder="Write your notes here..."
-                  rows="3"
-                  maxLength="250"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 resize-none"
+                  placeholder='Write your notes here...'
+                  rows='3'
+                  maxLength='250'
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 resize-none'
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className='text-xs text-gray-500 mt-1'>
                   {formData.specialNotesForInspector.length}/250 characters
                 </p>
               </div>
             </div>
 
             {/* Right Column */}
-            <div className="space-y-6">
+            <div className='space-y-6'>
               {/* Form Type */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Form Type*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Form Type*</span>
                 </label>
                 <select
-                  name="formType"
+                  name='formType'
                   value={formData.formType}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
-                >
-                  <option value="RCI Residential Building Code Inspection">
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white'>
+                  <option value='RCI Residential Building Code Inspection'>
                     RCI Residential Building Code Inspection
                   </option>
-                  <option value="Commercial Inspection">
-                    Commercial Inspection
-                  </option>
-                  <option value="Structural Inspection">
-                    Structural Inspection
-                  </option>
+                  <option value='Unknown'>Unknown</option>
                 </select>
               </div>
 
               {/* Agreed Fee */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Agreed Fee*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Agreed Fee*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                <div className='relative'>
+                  <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500'>
                     $
                   </span>
                   <input
-                    type="number"
-                    name="agreedFee"
+                    type='number'
+                    name='agreedFee'
                     value={formData.agreedFee}
                     onChange={handleChange}
-                    placeholder="e.g., 50"
+                    placeholder='e.g., 50'
                     required
-                    min="0"
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                    min='0'
+                    step='0.01'
+                    className='w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                   />
                 </div>
               </div>
 
               {/* Order ID */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Order ID*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Order ID*</span>
                 </label>
                 <input
-                  type="text"
-                  name="orderId"
+                  type='text'
+                  name='orderId'
                   value={formData.orderId}
                   onChange={handleChange}
-                  placeholder="e.g., 88132188"
+                  placeholder='e.g., 88132188'
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                 />
               </div>
 
               {/* Development */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Development*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Development*</span>
                 </label>
                 <input
-                  type="text"
-                  name="development"
+                  type='text'
+                  name='development'
                   value={formData.development}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                 />
               </div>
 
               {/* Site Contact Email */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Site Contact Email*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Site Contact Email*</span>
                 </label>
                 <input
-                  type="email"
-                  name="siteContactEmail"
+                  type='email'
+                  name='siteContactEmail'
                   value={formData.siteContactEmail}
                   onChange={handleChange}
-                  placeholder="john.doe@example.com"
+                  placeholder='john.doe@example.com'
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                 />
               </div>
 
               {/* Date Due */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Date Due*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Date Due*</span>
                 </label>
                 <input
-                  type="date"
-                  name="dateDue"
+                  type='date'
+                  name='dateDue'
                   value={formData.dateDue}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                 />
               </div>
 
               {/* Notes to AP/AR */}
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  <span className="font-bold">Notes to AP/AR*</span>
+                <label className='block font-medium text-gray-700 mb-2'>
+                  <span className='font-bold'>Notes to AP/AR*</span>
                 </label>
                 <textarea
-                  name="specialNoteForApOrAr"
+                  name='specialNoteForApOrAr'
                   value={formData.specialNoteForApOrAr}
                   onChange={handleChange}
-                  placeholder="Write your notes here..."
-                  rows="3"
-                  maxLength="250"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 resize-none"
+                  placeholder='Write your notes here...'
+                  rows='3'
+                  maxLength='250'
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 resize-none'
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className='text-xs text-gray-500 mt-1'>
                   {formData.specialNoteForApOrAr.length}/250 characters
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="my-8 border-t border-gray-200"></div>
+          <div className='my-8 border-t border-gray-200'></div>
 
-          <div className="flex justify-end">
+          <div className='flex justify-end'>
             <button
-              type="submit"
+              type='submit'
               disabled={loading || !selectedInspector}
-              className="px-8 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
+              className='px-8 py-3 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'>
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={20} />
+                  <Loader2 className='animate-spin' size={20} />
                   Creating Job...
                 </>
               ) : (
