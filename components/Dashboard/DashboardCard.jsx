@@ -138,29 +138,39 @@ const DashboardCard = ({
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white border-r border-gray-100 w-3/4 md:w-64 fixed left-0 top-0 bottom-0">
+    <div
+      className={`h-screen flex flex-col bg-white border-r border-gray-100 fixed left-0 top-0 bottom-0 ${
+        isCollapsed ? "w-20" : "w-3/4 md:w-64"
+      }`}>
       {/* Logo and Toggle */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between shrink-0">
+      <div className='p-4 border-b border-gray-200 flex items-center justify-between shrink-0'>
         {!isCollapsed && (
-          <Link href="/">
-            <h1 className="text-4xl font-bold text-teal-600 logo hover:opacity-80 transition-opacity">
+          <Link href='/'>
+            <h1 className='text-4xl font-bold text-teal-600 logo hover:opacity-80 transition-opacity'>
               Art Neidich
+            </h1>
+          </Link>
+        )}
+        {isCollapsed && (
+          <Link href='/'>
+            <h1 className='text-4xl font-bold text-teal-600 logo hover:opacity-80 transition-opacity'>
+              AN
             </h1>
           </Link>
         )}
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 py-4 overflow-y-auto">
-        <div className="px-4">
+      <div className='flex-1 py-4 overflow-y-auto'>
+        <div className='px-4'>
           {/* Menu Section */}
           {!isCollapsed && (
-            <p className="text-xs font-semibold text-gray-500 tracking-wider mb-3 px-2">
+            <p className='text-xs font-semibold text-gray-500 tracking-wider mb-3 px-2'>
               Menu
             </p>
           )}
 
-          <div className="space-y-1 mb-8">
+          <div className='space-y-1 mb-8'>
             {menuItems.map((item) => (
               <Link
                 href={item.link}
@@ -172,11 +182,10 @@ const DashboardCard = ({
                   isItemActive(item)
                     ? "bg-teal-600 text-white font-medium border border-teal-600"
                     : "text-black hover:bg-gray-100"
-                }`}
-              >
-                <item.icon size={20} className="shrink-0" />
+                }`}>
+                <item.icon size={20} className='shrink-0' />
                 {!isCollapsed && (
-                  <span className="ml-3 text-sm truncate">{item.label}</span>
+                  <span className='ml-3 text-sm truncate'>{item.label}</span>
                 )}
               </Link>
             ))}
@@ -184,12 +193,12 @@ const DashboardCard = ({
 
           {/* Others Section */}
           {!isCollapsed && (
-            <p className="text-xs font-semibold text-gray-500 tracking-wider mb-3 px-2">
+            <p className='text-xs font-semibold text-gray-500 tracking-wider mb-3 px-2'>
               Others
             </p>
           )}
 
-          <div className="space-y-1">
+          <div className='space-y-1'>
             {otherItems.map((item) => (
               <Link
                 href={item.link}
@@ -201,11 +210,10 @@ const DashboardCard = ({
                   isItemActive(item)
                     ? "bg-teal-600 text-white font-medium border border-teal-600"
                     : "text-black hover:bg-gray-100"
-                }`}
-              >
-                <item.icon size={20} className="shrink-0" />
+                }`}>
+                <item.icon size={20} className='shrink-0' />
                 {!isCollapsed && (
-                  <span className="ml-3 text-sm truncate">{item.label}</span>
+                  <span className='ml-3 text-sm truncate'>{item.label}</span>
                 )}
               </Link>
             ))}
@@ -214,16 +222,15 @@ const DashboardCard = ({
       </div>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200 shrink-0">
+      <div className='p-4 border-t border-gray-200 shrink-0'>
         <button
           onClick={handleLogout}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center p-3" : "px-3 py-2.5"
-          } rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300`}
-        >
+          } rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300`}>
           <LogOut />
           {!isCollapsed && (
-            <span className="ml-3 text-sm font-medium">Logout</span>
+            <span className='ml-3 text-sm font-medium'>Logout</span>
           )}
         </button>
       </div>
