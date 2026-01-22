@@ -1,10 +1,3 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//   /* config options here */
-// };
-
-// export default nextConfig;
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -16,6 +9,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "www.maisondepax.com",
+      },
+      {
+        protocol: "https",
+        hostname: "fha-inspector.s3.us-west-1.amazonaws.com",
       },
       // {
       //   protocol: 'https',

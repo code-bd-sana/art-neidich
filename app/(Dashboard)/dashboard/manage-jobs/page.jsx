@@ -77,7 +77,7 @@ export default function ManageJobs() {
           // Filter only approved and non-suspended inspectors
           const approvedInspectors = data.data.filter(
             (inspector) =>
-              inspector.isApproved === true && !inspector.isSuspended
+              inspector.isApproved === true && !inspector.isSuspended,
           );
 
           if (reset) {
@@ -97,7 +97,7 @@ export default function ManageJobs() {
         setLoadingInspectors(false);
       }
     },
-    []
+    [],
   );
 
   // Initial load
