@@ -13,7 +13,7 @@ export async function updateLabel(labelId, labelName) {
       method: "PUT",
       body: JSON.stringify({ label: labelName }),
     });
-    
+
     return resp;
   } catch (error) {
     console.error("Update label error:", error);
@@ -31,7 +31,7 @@ export async function createLabel(labelName) {
       method: "POST",
       body: JSON.stringify({ label: labelName }),
     });
-    
+
     return resp;
   } catch (error) {
     console.error("Create label error:", error);
@@ -48,7 +48,7 @@ export async function deleteLabel(labelId) {
     const resp = await apiFetch(`/image-label/${labelId}`, {
       method: "DELETE",
     });
-    
+
     return resp;
   } catch (error) {
     console.error("Delete label error:", error);
@@ -60,7 +60,7 @@ export async function deleteLabel(labelId) {
    Get Labels
    GET /api/v1/image-label?page=1&limit=10&search=...
 ====================== */
-export async function getLabels(page = 1, limit = 10, search = "") {
+export async function getLabels(page = 1, limit = 20, search = "") {
   try {
     let url = `/image-label?page=${page}&limit=${limit}`;
     if (search) {
@@ -70,7 +70,7 @@ export async function getLabels(page = 1, limit = 10, search = "") {
     const resp = await apiFetch(url, {
       method: "GET",
     });
-    
+
     return resp;
   } catch (error) {
     console.error("Get labels error:", error);

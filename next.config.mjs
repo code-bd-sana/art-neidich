@@ -14,10 +14,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "fha-inspector.s3.us-west-1.amazonaws.com",
       },
-      // {
-      //   protocol: 'https',
-      //   hostname: 'images.unsplash.com',
-      // },
+      {
+        protocol: "https",
+        hostname: "example.com",
+      },
     ],
   },
   // ... other config options
