@@ -410,7 +410,7 @@ export default function Profile() {
           </div>
         </form>
 
-        {/* Password Change Section - SEPARATE FORM */}
+        {/* Password Change Section */}
         <div className='mt-12 pt-8 border-t border-gray-200'>
           <div className='flex justify-between items-center mb-6'>
             <div>
@@ -424,7 +424,7 @@ export default function Profile() {
             <button
               type='button'
               onClick={togglePasswordForm}
-              className='px-6 py-2 border border-teal-600 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium flex items-center gap-2'
+              className='px-6 py-2 border border-teal-600 text-teal-600 hover:bg-teal-50 rounded-full transition-colors font-medium flex items-center gap-2'
               disabled={updatingProfile || changingPassword}>
               {showPasswordForm ? "Cancel" : "Change Password"}
             </button>
