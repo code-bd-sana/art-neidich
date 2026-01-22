@@ -101,7 +101,7 @@ export default function Photos({ jobData }) {
     }
   };
 
-  // ZIP download (works for 1 or more images, unique filenames)
+  // ZIP download
   const downloadZipForLabel = async (item) => {
     if (!item?.images?.length) {
       alert("No images to download");
@@ -385,7 +385,7 @@ export default function Photos({ jobData }) {
                     <span>
                       {item.count === 1
                         ? "Download Image"
-                        : `ZIP (${item.count})`}
+                        : `Download ZIP (${item.count})`}
                     </span>
                   </button>
                 </div>
