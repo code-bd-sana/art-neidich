@@ -260,34 +260,6 @@ export default function Photos({ jobData }) {
                   ))}
                 </div> */}
               </div>
-              {/* <div className='col-span-2'>
-                <div className='flex items-center gap-2'>
-                  <div className='text-sm text-gray-600 flex items-center justify-center gap-x-2'>
-                    <div>
-                      {item.images?.map((image, idx) => (
-                        <a
-                          key={idx}
-                          href={image.url}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='flex items-center gap-2 text-sm text-teal-600 hover:text-teal-700 transition-colors'>
-                          <Image
-                            src={image.url}
-                            alt='Img'
-                            width={20}
-                            height={20}
-                          />
-                        </a>
-                      ))}
-                    </div>
-                    <div>
-                      {item.count} {item.count === 1 ? "Photo" : "Photos"}
-                    </div>
-                  </div>
-                </div>
-              </div> */}
-
-              {/* Inspector Column - thumbnails + count */}
               <div className='col-span-2'>
                 <div className='flex items-center gap-2'>
                   {/* Stacked thumbnail images */}
@@ -297,9 +269,13 @@ export default function Photos({ jobData }) {
                         key={idx}
                         src={image.url}
                         alt='Img'
-                        width={20}
-                        height={20}
+                        width={25}
+                        height={25}
                         className='rounded border-2 border-white'
+                        style={{
+                          transform: `rotate(${(idx - 1) * 8}deg)`,
+                          zIndex: idx,
+                        }}
                       />
                     ))}
                   </div>

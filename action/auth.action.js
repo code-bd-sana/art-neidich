@@ -11,11 +11,11 @@ import { cookies } from "next/headers";
 export async function registerAction(formData) {
   try {
     console.log("Register action called with data:", formData);
-    
+
     return await apiFetch("/auth/register", {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         firstName: formData.firstName,
@@ -39,11 +39,11 @@ export async function registerAction(formData) {
 export async function loginAction(formData) {
   try {
     console.log("Login action called with data:", formData);
-    
+
     const response = await apiFetch("/auth/login", {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: formData.email,
@@ -79,13 +79,12 @@ export async function loginAction(formData) {
 export async function logoutAction() {
   try {
     const cookieStore = await cookies();
-    
+
     // Delete the httpOnly cookie (same way you set it)
     cookieStore.delete("token");
-    
+
     // IMPORTANT: Force redirect from server
     redirect("/");
-    
   } catch (error) {
     console.error("Logout error:", error);
     // Still try to redirect
@@ -111,10 +110,10 @@ export async function getCurrentUserAction() {
     const response = await apiFetch("/user/profile", {
       method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      cache: 'no-store',
+      cache: "no-store",
     });
 
     return response?.data || response;
@@ -129,7 +128,6 @@ export async function getCurrentUserAction() {
    PUT /user/profile
 ====================== */
 export async function updateProfileAction(formData) {
-
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
@@ -146,12 +144,12 @@ export async function updateProfileAction(formData) {
     };
 
     console.log("Updating profile:", updateData);
-    
+
     const response = await apiFetch("/user/profile", {
       method: "PUT",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(updateData),
     });
@@ -172,11 +170,11 @@ export async function updateProfileAction(formData) {
 export async function forgotPasswordAction(email, isWeb = true) {
   try {
     console.log("Forgot password action called for email:", email);
-    
+
     const response = await apiFetch("/auth/forgot-password", {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: email,
@@ -196,25 +194,49 @@ export async function forgotPasswordAction(email, isWeb = true) {
    POST /auth/reset-password
    Public Api
 ====================== */
-export async function resetPasswordAction(token, newPassword) {
+export async function resetPasswordAction(token, newPassword, email) {
   try {
-    console.log("Reset password action called");
-    
+    console.log("Reset password action called with:", {
+      token: token.substring(0, 10) + "...", // partial log for safety
+      email: email || "not provided",
+    });
+
+    const payload = {
+      email: email,
+      token: token,
+      newPassword: newPassword,
+    };
+
+    if (email) {
+      payload.email = email.trim().toLowerCase();
+    }
+
     const response = await apiFetch("/auth/reset-password", {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        token: token,
-        newPassword: newPassword,
-      }),
+      body: JSON.stringify(payload),
     });
 
     return response;
   } catch (error) {
     console.error("Reset password action error:", error);
-    throw error;
+
+    let msg = error.message || "Failed to reset password.";
+
+    if (msg.toLowerCase().includes("expired")) {
+      msg = "This reset link has expired. Please request a new one.";
+    } else if (
+      msg.toLowerCase().includes("invalid") ||
+      msg.toLowerCase().includes("token")
+    ) {
+      msg = "Invalid or expired reset link. Please try again.";
+    } else if (msg.toLowerCase().includes("not found")) {
+      msg = "Account not found or link is invalid.";
+    }
+
+    throw new Error(msg);
   }
 }
 
@@ -225,7 +247,7 @@ export async function resetPasswordAction(token, newPassword) {
 export async function changePasswordAction(passwordData) {
   try {
     console.log("=== changePasswordAction ===");
-    
+
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
 
@@ -240,34 +262,38 @@ export async function changePasswordAction(passwordData) {
     };
 
     console.log("Sending:", requestData);
-    
+
     // Use apiFetch - it will add the base URL automatically
     const response = await apiFetch("/auth/change-password", {
       method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(requestData),
     });
 
     console.log("Success:", response);
     return response;
-    
   } catch (error) {
     console.error("Password change error:", error);
-    
+
     let errorMessage = "Failed to change password";
-    
-    if (error.message.includes("User not found") || 
-        error.message.includes("incorrect") || 
-        error.message.includes("current") ||
-        error.message.includes("invalid")) {
+
+    if (
+      error.message.includes("User not found") ||
+      error.message.includes("incorrect") ||
+      error.message.includes("current") ||
+      error.message.includes("invalid")
+    ) {
       errorMessage = "Current password is incorrect";
-    } else if (error.message.includes("401") || error.message.includes("unauthorized")) {
+    } else if (
+      error.message.includes("401") ||
+      error.message.includes("unauthorized")
+    ) {
       errorMessage = "Session expired. Please login again.";
     }
-    
+
     throw new Error(errorMessage);
   }
 }

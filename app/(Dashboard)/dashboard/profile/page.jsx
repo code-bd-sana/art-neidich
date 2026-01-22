@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Eye, 
+import {
+  Eye,
   EyeOff,
   CheckCircle,
   XCircle,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
-import { 
-  getCurrentUserAction, 
+import {
+  getCurrentUserAction,
   updateProfileAction,
   changePasswordAction,
-  logoutAction 
+  logoutAction,
 } from "@/action/auth.action";
 
 export default function Profile() {
@@ -23,26 +23,26 @@ export default function Profile() {
     lastName: "",
     email: "",
   });
-  
+
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-  
+
   // State for display
   const [userData, setUserData] = useState({
     displayName: "",
     displayEmail: "",
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  
+
   // Password visibility states
   const [showPasswords, setShowPasswords] = useState({
     oldPassword: false,
@@ -60,16 +60,16 @@ export default function Profile() {
       setLoading(true);
       setError("");
       const user = await getCurrentUserAction();
-      
+
       if (user) {
         console.log("Loaded user:", user);
-        
+
         // Set display data
         setUserData({
-          displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          displayName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           displayEmail: user.email || "",
         });
-        
+
         // Set form data
         setFormData({
           firstName: user.firstName || "",
@@ -90,19 +90,23 @@ export default function Profile() {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === "oldPassword" || name === "newPassword" || name === "confirmPassword") {
-      setPasswordData(prev => ({
+
+    if (
+      name === "oldPassword" ||
+      name === "newPassword" ||
+      name === "confirmPassword"
+    ) {
+      setPasswordData((prev) => ({
         ...prev,
         [name]: value,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
     }
-    
+
     // Clear messages when user types
     if (error || success) {
       setError("");
@@ -112,9 +116,9 @@ export default function Profile() {
 
   // Toggle password visibility
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -139,7 +143,7 @@ export default function Profile() {
   // Handle PROFILE update
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    
+
     try {
       setUpdatingProfile(true);
       setError("");
@@ -149,37 +153,39 @@ export default function Profile() {
       if (!formData.firstName.trim()) {
         throw new Error("First name is required");
       }
-      
+
       if (!formData.email.trim()) {
         throw new Error("Email is required");
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
-        throw new Error("Please enter a valid email address (example@domain.com)");
+        throw new Error(
+          "Please enter a valid email address (example@domain.com)",
+        );
       }
 
       // Prepare update data - ONLY profile fields
-      const updateData = { 
+      const updateData = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
       };
 
       console.log("Updating profile:", updateData);
-      
+
       // Call profile update action
       const result = await updateProfileAction(updateData);
-      
+
       if (result) {
         // Update display
         setUserData({
           displayName: `${formData.firstName} ${formData.lastName}`.trim(),
           displayEmail: formData.email,
         });
-        
+
         setSuccess("Profile updated successfully!");
-        
+
         // Refresh data from server
         setTimeout(() => {
           loadUserData();
@@ -193,150 +199,67 @@ export default function Profile() {
     }
   };
 
-
-
-
-
   const getTokenFromCookies = () => {
-  // Simple, direct cookie parsing
-  const cookieString = document.cookie;
-  console.log("All cookies:", cookieString);
-  
-  // Find token cookie
-  const tokenMatch = cookieString.match(/token=([^;]+)/);
-  
-  if (tokenMatch && tokenMatch[1]) {
-    console.log("Token found in cookies");
-    return tokenMatch[1];
-  }
-  
-  console.log("No token found in cookies");
-  return null;
-}
+    // Simple, direct cookie parsing
+    const cookieString = document.cookie;
+    console.log("All cookies:", cookieString);
+
+    // Find token cookie
+    const tokenMatch = cookieString.match(/token=([^;]+)/);
+
+    if (tokenMatch && tokenMatch[1]) {
+      console.log("Token found in cookies");
+      return tokenMatch[1];
+    }
+
+    console.log("No token found in cookies");
+    return null;
+  };
 
   // Handle PASSWORD change
-// const handlePasswordChange = async (e) => {
-//   e.preventDefault();
-  
-//   try {
-//     setChangingPassword(true);
-//     setError("");
-//     setSuccess("");
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
 
-//     // Simple validation
-//     if (!passwordData.oldPassword.trim()) {
-//       throw new Error("Current password is required");
-//     }
-//     if (!passwordData.newPassword.trim()) {
-//       throw new Error("New password is required");
-//     }
-//     if (passwordData.newPassword !== passwordData.confirmPassword) {
-//       throw new Error("Passwords do not match");
-//     }
-//     if (passwordData.newPassword.length < 6) {
-//       throw new Error("Password must be at least 6 characters");
-//     }
-//     if (passwordData.oldPassword === passwordData.newPassword) {
-//       throw new Error("New password must be different from current password");
-//     }
+    try {
+      setChangingPassword(true);
+      setError("");
+      setSuccess("");
 
-//     console.log("Calling changePasswordAction server action...");
-    
-//     // Call the Server Action
-//     const result = await changePasswordAction({
-//       oldPassword: passwordData.oldPassword,
-//       newPassword: passwordData.newPassword,
-//     });
-    
-//     console.log("Server action result:", result);
-    
-//     // Success
-//     setSuccess("Password changed successfully! You will be logged out in 3 seconds...");
-    
-//     // Clear the form
-//     setPasswordData({
-//       oldPassword: "",
-//       newPassword: "",
-//       confirmPassword: "",
-//     });
-//     setShowPasswordForm(false);
-    
-//     // Reset password visibility
-//     setShowPasswords({
-//       oldPassword: false,
-//       newPassword: false,
-//       confirmPassword: false,
-//     });
-    
-//     // Logout after password change
-//     setTimeout(async () => {
-//       try {
-//         // Call logout server action
-//         await logoutAction();
-//       } catch (logoutError) {
-//         console.error("Logout error:", logoutError);
-//         // Fallback redirect
-//         window.location.href = "/login";
-//       }
-//     }, 3000);
-    
-//   }catch (err) {
-//   console.error("Password change error:", err);
-  
-//   let errorMessage = err.message;
-  
-//   // Better error messages
-//   if (err.message.includes("User not found") || 
-//       err.message.includes("incorrect") || 
-//       err.message.includes("current")) {
-//     errorMessage = "Current password is incorrect";
-//   } else if (err.message.includes("Invalid body data")) {
-//     errorMessage = "Please check that passwords meet requirements";
-//   }
-  
-//   setError(errorMessage);
-//   } finally {
-//     setChangingPassword(false);
-//   }
-// };
+      // Validation
+      if (!passwordData.oldPassword.trim())
+        throw new Error("Enter current password");
+      if (!passwordData.newPassword.trim())
+        throw new Error("Enter new password");
+      if (passwordData.newPassword !== passwordData.confirmPassword)
+        throw new Error("Passwords don't match");
+      if (passwordData.newPassword.length < 6)
+        throw new Error("Password must be 6+ characters");
 
-const handlePasswordChange = async (e) => {
-  e.preventDefault();
-  
-  try {
-    setChangingPassword(true);
-    setError("");
-    setSuccess("");
+      console.log("Calling server action...");
 
-    // Validation
-    if (!passwordData.oldPassword.trim()) throw new Error("Enter current password");
-    if (!passwordData.newPassword.trim()) throw new Error("Enter new password");
-    if (passwordData.newPassword !== passwordData.confirmPassword) throw new Error("Passwords don't match");
-    if (passwordData.newPassword.length < 6) throw new Error("Password must be 6+ characters");
+      // This should work - apiFetch adds base URL
+      const result = await changePasswordAction({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+      });
 
-    console.log("Calling server action...");
-    
-    // This should work - apiFetch adds base URL
-    const result = await changePasswordAction({
-      oldPassword: passwordData.oldPassword,
-      newPassword: passwordData.newPassword,
-    });
-    
-    console.log("Success:", result);
-    setSuccess("Password changed!");
-    
-    // Clear form
-    setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
-    setShowPasswordForm(false);
-    
-  
-  } catch (err) {
-    console.error("Error:", err);
-    setError(err.message);
-  } finally {
-    setChangingPassword(false);
-  }
-};
+      console.log("Success:", result);
+      setSuccess("Password changed!");
+
+      // Clear form
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswordForm(false);
+    } catch (err) {
+      console.error("Error:", err);
+      setError(err.message);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
   // Refresh data
   const handleRefresh = async () => {
     await loadUserData();
@@ -345,22 +268,22 @@ const handlePasswordChange = async (e) => {
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen">
-        <div className="bg-[#F7F7F5] p-24">
-          <div className="text-center bg-white max-w-[200px] mx-auto p-1 rounded-2xl animate-pulse">
-            <div className="h-4 bg-gray-300 rounded"></div>
+      <div className='w-full min-h-screen'>
+        <div className='bg-[#F7F7F5] p-24'>
+          <div className='text-center bg-white max-w-[200px] mx-auto p-1 rounded-2xl animate-pulse'>
+            <div className='h-4 bg-gray-300 rounded'></div>
           </div>
-          <div className="max-w-[500px] mx-auto text-center text-6xl mt-4">
-            <div className="h-16 bg-gray-300 rounded animate-pulse"></div>
+          <div className='max-w-[500px] mx-auto text-center text-6xl mt-4'>
+            <div className='h-16 bg-gray-300 rounded animate-pulse'></div>
           </div>
         </div>
-        <div className="px-16 py-10">
-          <div className="h-8 bg-gray-300 rounded w-48 mb-6 animate-pulse"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className='px-16 py-10'>
+          <div className='h-8 bg-gray-300 rounded w-48 mb-6 animate-pulse'></div>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
             {[1, 2, 3].map((i) => (
               <div key={i}>
-                <div className="h-4 bg-gray-300 rounded w-1/4 mb-2 animate-pulse"></div>
-                <div className="h-12 bg-gray-300 rounded animate-pulse"></div>
+                <div className='h-4 bg-gray-300 rounded w-1/4 mb-2 animate-pulse'></div>
+                <div className='h-12 bg-gray-300 rounded animate-pulse'></div>
               </div>
             ))}
           </div>
@@ -370,45 +293,44 @@ const handlePasswordChange = async (e) => {
   }
 
   return (
-    <div className="w-full">
+    <div className='w-full'>
       {/* Top section */}
-      <div className="bg-[#F7F7F5] p-24">
-        <p className="text-center bg-white max-w-[200px] mx-auto p-1 rounded-2xl">
+      <div className='bg-[#F7F7F5] p-24'>
+        <p className='text-center bg-white max-w-[200px] mx-auto p-1 rounded-2xl'>
           {userData.displayEmail}
         </p>
-        <p className="max-w-[500px] mx-auto text-center text-6xl mt-4">
+        <p className='max-w-[500px] mx-auto text-center text-6xl mt-4'>
           {userData.displayName}
         </p>
       </div>
 
       {/* Action buttons */}
-      <div className="px-16 pt-6 flex justify-end">
+      <div className='px-16 pt-6 flex justify-end'>
         <button
-          type="button"
+          type='button'
           onClick={handleRefresh}
-          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
+          className='px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2'>
+          <RefreshCw className='w-4 h-4' />
           Refresh Data
         </button>
       </div>
 
       {/* Error/Success messages */}
       {(error || success) && (
-        <div className="px-16 pt-4">
+        <div className='px-16 pt-4'>
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center">
-                <XCircle className="w-5 h-5 text-red-500 mr-2" />
-                <p className="text-red-600 font-medium">{error}</p>
+            <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+              <div className='flex items-center'>
+                <XCircle className='w-5 h-5 text-red-500 mr-2' />
+                <p className='text-red-600 font-medium'>{error}</p>
               </div>
             </div>
           )}
           {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                <p className="text-green-600 font-medium">{success}</p>
+            <div className='mb-4 p-4 bg-green-50 border border-green-200 rounded-lg'>
+              <div className='flex items-center'>
+                <CheckCircle className='w-5 h-5 text-green-500 mr-2' />
+                <p className='text-green-600 font-medium'>{success}</p>
               </div>
             </div>
           )}
@@ -416,73 +338,72 @@ const handlePasswordChange = async (e) => {
       )}
 
       {/* Form */}
-      <div className="px-16 py-10">
-        <p className="text-2xl font-semibold mb-6">Profile Information</p>
-        
+      <div className='px-16 py-10'>
+        <p className='text-2xl font-semibold mb-6'>Profile Information</p>
+
         {/* Profile Update Form */}
         <form onSubmit={handleProfileUpdate}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-8">
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-8'>
             <div>
-              <label className="block font-medium text-gray-500 mb-2">
-                <span className="font-bold">First Name *</span>
+              <label className='block font-medium text-gray-500 mb-2'>
+                <span className='font-bold'>First Name *</span>
               </label>
               <input
-                type="text"
-                name="firstName"
+                type='text'
+                name='firstName'
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
                 disabled={updatingProfile}
               />
             </div>
 
             <div>
-              <label className="block font-medium text-gray-500 mb-2">
-                <span className="font-bold">Last Name</span>
+              <label className='block font-medium text-gray-500 mb-2'>
+                <span className='font-bold'>Last Name</span>
               </label>
               <input
-                type="text"
-                name="lastName"
+                type='text'
+                name='lastName'
                 value={formData.lastName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
                 disabled={updatingProfile}
               />
             </div>
 
             <div>
-              <label className="block font-medium text-gray-500 mb-2">
-                <span className="font-bold">Email *</span>
+              <label className='block font-medium text-gray-500 mb-2'>
+                <span className='font-bold'>Email *</span>
               </label>
               <input
-                type="email"
-                name="email"
+                type='email'
+                name='email'
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
                 disabled={updatingProfile}
               />
             </div>
           </div>
 
           {/* Profile Update Button */}
-          <div className="flex justify-end mb-8">
+          <div className='flex justify-end mb-8'>
             <button
-              type="submit"
+              type='submit'
               disabled={updatingProfile}
-              className="px-8 py-3 bg-teal-600 text-white font-medium rounded-full hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-            >
+              className='px-8 py-3 bg-teal-600 text-white font-medium rounded-full hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md'>
               {updatingProfile ? (
                 <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <RefreshCw className='w-5 h-5 animate-spin' />
                   Updating Profile...
                 </>
               ) : (
                 <>
                   Update Profile
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className='w-5 h-5' />
                 </>
               )}
             </button>
@@ -490,52 +411,52 @@ const handlePasswordChange = async (e) => {
         </form>
 
         {/* Password Change Section - SEPARATE FORM */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <div className="flex justify-between items-center mb-6">
+        <div className='mt-12 pt-8 border-t border-gray-200'>
+          <div className='flex justify-between items-center mb-6'>
             <div>
-              <p className="text-xl font-semibold">Change Password</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {showPasswordForm ? "Fill all fields to change password" : "Optional - click to change password"}
+              <p className='text-xl font-semibold'>Change Password</p>
+              <p className='text-sm text-gray-500 mt-1'>
+                {showPasswordForm
+                  ? "Fill all fields to change password"
+                  : "Optional - click to change password"}
               </p>
             </div>
             <button
-              type="button"
+              type='button'
               onClick={togglePasswordForm}
-              className="px-6 py-2 border border-teal-600 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium flex items-center gap-2"
-              disabled={updatingProfile || changingPassword}
-            >
+              className='px-6 py-2 border border-teal-600 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium flex items-center gap-2'
+              disabled={updatingProfile || changingPassword}>
               {showPasswordForm ? "Cancel" : "Change Password"}
             </button>
           </div>
 
           {showPasswordForm && (
             <form onSubmit={handlePasswordChange}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-8">
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-8'>
                 {/* Current Password */}
                 <div>
-                  <label className="block font-medium text-gray-500 mb-2">
-                    <span className="font-bold">Current Password *</span>
+                  <label className='block font-medium text-gray-500 mb-2'>
+                    <span className='font-bold'>Current Password *</span>
                   </label>
-                  <div className="relative">
+                  <div className='relative'>
                     <input
                       type={showPasswords.oldPassword ? "text" : "password"}
-                      name="oldPassword"
+                      name='oldPassword'
                       value={passwordData.oldPassword}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10"
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10'
                       disabled={changingPassword}
-                      placeholder="Enter current password"
+                      placeholder='Enter current password'
                     />
                     <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('oldPassword')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      tabIndex={-1}
-                    >
+                      type='button'
+                      onClick={() => togglePasswordVisibility("oldPassword")}
+                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none'
+                      tabIndex={-1}>
                       {showPasswords.oldPassword ? (
-                        <EyeOff className="w-5 h-5" />
+                        <EyeOff className='w-5 h-5' />
                       ) : (
-                        <Eye className="w-5 h-5" />
+                        <Eye className='w-5 h-5' />
                       )}
                     </button>
                   </div>
@@ -543,95 +464,108 @@ const handlePasswordChange = async (e) => {
 
                 {/* New Password */}
                 <div>
-                  <label className="block font-medium text-gray-500 mb-2">
-                    <span className="font-bold">New Password *</span>
+                  <label className='block font-medium text-gray-500 mb-2'>
+                    <span className='font-bold'>New Password *</span>
                   </label>
-                  <div className="relative">
+                  <div className='relative'>
                     <input
                       type={showPasswords.newPassword ? "text" : "password"}
-                      name="newPassword"
+                      name='newPassword'
                       value={passwordData.newPassword}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10"
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10'
                       disabled={changingPassword}
-                      placeholder="Enter new password"
+                      placeholder='Enter new password'
                     />
                     <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('newPassword')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      tabIndex={-1}
-                    >
+                      type='button'
+                      onClick={() => togglePasswordVisibility("newPassword")}
+                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none'
+                      tabIndex={-1}>
                       {showPasswords.newPassword ? (
-                        <EyeOff className="w-5 h-5" />
+                        <EyeOff className='w-5 h-5' />
                       ) : (
-                        <Eye className="w-5 h-5" />
+                        <Eye className='w-5 h-5' />
                       )}
                     </button>
                   </div>
-                  <div className="flex items-center mt-2">
-                    <div className={`w-2 h-2 rounded-full mr-1 ${passwordData.newPassword.length >= 6 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                    <p className="text-xs text-gray-500">At least 6 characters</p>
+                  <div className='flex items-center mt-2'>
+                    <div
+                      className={`w-2 h-2 rounded-full mr-1 ${passwordData.newPassword.length >= 6 ? "bg-green-500" : "bg-gray-300"}`}></div>
+                    <p className='text-xs text-gray-500'>
+                      At least 6 characters
+                    </p>
                   </div>
                 </div>
 
                 {/* Confirm New Password */}
                 <div>
-                  <label className="block font-medium text-gray-500 mb-2">
-                    <span className="font-bold">Confirm Password *</span>
+                  <label className='block font-medium text-gray-500 mb-2'>
+                    <span className='font-bold'>Confirm Password *</span>
                   </label>
-                  <div className="relative">
+                  <div className='relative'>
                     <input
                       type={showPasswords.confirmPassword ? "text" : "password"}
-                      name="confirmPassword"
+                      name='confirmPassword'
                       value={passwordData.confirmPassword}
                       onChange={handleInputChange}
                       className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 pr-10 ${
-                        passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword 
-                          ? 'border-red-300' 
-                          : 'border-gray-300'
+                        passwordData.newPassword &&
+                        passwordData.confirmPassword &&
+                        passwordData.newPassword !==
+                          passwordData.confirmPassword
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       disabled={changingPassword}
-                      placeholder="Confirm new password"
+                      placeholder='Confirm new password'
                     />
                     <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility('confirmPassword')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      tabIndex={-1}
-                    >
+                      type='button'
+                      onClick={() =>
+                        togglePasswordVisibility("confirmPassword")
+                      }
+                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none'
+                      tabIndex={-1}>
                       {showPasswords.confirmPassword ? (
-                        <EyeOff className="w-5 h-5" />
+                        <EyeOff className='w-5 h-5' />
                       ) : (
-                        <Eye className="w-5 h-5" />
+                        <Eye className='w-5 h-5' />
                       )}
                     </button>
                   </div>
-                  {passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center">
-                      <XCircle className="w-3 h-3 mr-1" />
-                      Passwords do not match
-                    </p>
-                  )}
+                  {passwordData.newPassword &&
+                    passwordData.confirmPassword &&
+                    passwordData.newPassword !==
+                      passwordData.confirmPassword && (
+                      <p className='text-xs text-red-500 mt-1 flex items-center'>
+                        <XCircle className='w-3 h-3 mr-1' />
+                        Passwords do not match
+                      </p>
+                    )}
                 </div>
               </div>
 
               {/* Password Change Button */}
-              <div className="flex justify-end">
+              <div className='flex justify-end'>
                 <button
-                  type="submit"
-                  disabled={changingPassword || !passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                  className="px-8 py-3 bg-amber-600 text-white font-medium rounded-full hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                >
+                  type='submit'
+                  disabled={
+                    changingPassword ||
+                    !passwordData.oldPassword ||
+                    !passwordData.newPassword ||
+                    !passwordData.confirmPassword
+                  }
+                  className='px-8 py-3 bg-amber-600 text-white font-medium rounded-full hover:bg-amber-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md'>
                   {changingPassword ? (
                     <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <RefreshCw className='w-5 h-5 animate-spin' />
                       Changing Password...
                     </>
                   ) : (
                     <>
                       Change Password
-                      <ArrowRight className="w-5 h-5" />
+                      <ArrowRight className='w-5 h-5' />
                     </>
                   )}
                 </button>
