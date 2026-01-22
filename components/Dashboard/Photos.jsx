@@ -2,7 +2,6 @@
 
 import {
   ArrowDownToLine,
-  ArrowRight,
   Download,
   Image as ImageIcon,
   Loader2,
@@ -10,9 +9,11 @@ import {
 import { useState, useEffect } from "react";
 import { getReportById } from "@/action/report.action";
 import Image from "next/image";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { generateReportPdf } from "@/utils/generateReportPdf";
 
 export default function Photos({ jobData }) {
-  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState(null);
@@ -24,14 +25,13 @@ export default function Photos({ jobData }) {
       setError(null);
 
       try {
-        // Fetch report data using reportId from jobData
         if (jobData?.reportId) {
           const data = await getReportById(jobData.reportId);
+          console.log("Report data from API:", data); // debug
 
           if (data.success) {
             setReportData(data.data);
 
-            // Transform API image data to photoData format
             const transformedPhotos =
               data.data.images?.map((imageGroup, index) => ({
                 id: index + 1,
@@ -45,7 +45,6 @@ export default function Photos({ jobData }) {
             throw new Error(data.message || "Failed to fetch report data");
           }
         } else {
-          // If no reportId, show mock data or empty state
           setPhotoData([]);
         }
       } catch (err) {
@@ -60,11 +59,104 @@ export default function Photos({ jobData }) {
       fetchReportData();
     } else {
       setLoading(false);
-      setPhotoData([]); // No report available
+      setPhotoData([]);
     }
   }, [jobData]);
 
-  // Mobile View
+  // Single image download (blob method to force save)
+  const downloadSingleImage = async (
+    url,
+    filename = "inspection-photo.jpg",
+  ) => {
+    if (!url) {
+      alert("No image URL available");
+      return;
+    }
+
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      if (!response.ok) {
+        throw new Error(
+          `Fetch failed: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      console.log("Single image downloaded:", filename);
+    } catch (err) {
+      console.error("Single image download error:", err);
+      window.open(url, "_blank");
+      alert("Download failed. Image opened in new tab instead.");
+    }
+  };
+
+  // ZIP download (works for 1 or more images, unique filenames)
+  const downloadZipForLabel = async (item) => {
+    if (!item?.images?.length) {
+      alert("No images to download");
+      return;
+    }
+
+    const zip = new JSZip();
+    const folder = zip.folder(item.location.replace(/\s+/g, "_")) || zip;
+
+    const usedNames = new Set();
+
+    for (let i = 0; i < item.images.length; i++) {
+      const image = item.images[i];
+      if (!image?.url) continue;
+
+      let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
+      let ext = image.mimeType?.split("/")[1] || "jpg";
+      let filename = `${baseName}.${ext}`;
+
+      // Make filename unique
+      let counter = 1;
+      let uniqueFilename = filename;
+      while (usedNames.has(uniqueFilename)) {
+        uniqueFilename = `${baseName} (${counter}).${ext}`;
+        counter++;
+      }
+      usedNames.add(uniqueFilename);
+
+      try {
+        const response = await fetch(image.url, { mode: "cors" });
+        if (!response.ok) continue;
+        const blob = await response.blob();
+        folder.file(uniqueFilename, blob);
+      } catch (err) {
+        console.error(`Failed to add ${image.url} to ZIP:`, err);
+      }
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, `${item.location.replace(/\s+/g, "_")}_photos.zip`);
+  };
+
+  // PDF report download
+  const handleDownloadReport = async () => {
+    if (!photoData.length) return;
+
+    const imagesByLabel = photoData.reduce((acc, group) => {
+      acc[group.location] = group.images;
+      return acc;
+    }, {});
+
+    await generateReportPdf(imagesByLabel, jobData);
+  };
+
+  // Mobile Card (fixed buttons)
   const MobilePhotoCard = ({ item }) => (
     <div className='bg-white border border-gray-200 rounded-lg p-4 mb-3'>
       <div className='flex items-center justify-between mb-3'>
@@ -79,20 +171,25 @@ export default function Photos({ jobData }) {
         </span>
       </div>
 
-      <div className='flex gap-2'>
-        {item.images?.map((image, idx) => (
-          <a
-            key={idx}
-            href={image.url}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors'>
-            <Download size={14} />
-            <span>Download {idx + 1}</span>
-          </a>
-        ))}
+      <div className='flex flex-col sm:flex-row gap-2'>
+        <button
+          onClick={() =>
+            item.count === 1
+              ? downloadSingleImage(item.images[0]?.url)
+              : downloadZipForLabel(item)
+          }
+          className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors'>
+          <Download size={14} />
+          <span>
+            {item.count === 1
+              ? "Download Photo"
+              : `Download ZIP (${item.count})`}
+          </span>
+        </button>
 
-        <button className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors'>
+        <button
+          onClick={handleDownloadReport}
+          className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors'>
           <ArrowDownToLine size={14} />
           <span>Report</span>
         </button>
@@ -100,7 +197,7 @@ export default function Photos({ jobData }) {
     </div>
   );
 
-  // Loading State
+  // Loading, Error, No Photos states (unchanged)
   if (loading) {
     return (
       <div className='flex justify-center items-center py-12'>
@@ -110,7 +207,6 @@ export default function Photos({ jobData }) {
     );
   }
 
-  // Error State
   if (error) {
     return (
       <div className='text-center py-8'>
@@ -121,7 +217,6 @@ export default function Photos({ jobData }) {
     );
   }
 
-  // No Photos State
   if (photoData.length === 0) {
     return (
       <div className='text-center py-12'>
@@ -151,7 +246,6 @@ export default function Photos({ jobData }) {
     );
   }
 
-  // Calculate total photos
   const totalPhotos = photoData.reduce((sum, item) => sum + item.count, 0);
 
   return (
@@ -206,7 +300,9 @@ export default function Photos({ jobData }) {
             )}
           </div>
           <div>
-            <button className='flex items-center gap-2 px-4 py-1.5 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors'>
+            <button
+              onClick={handleDownloadReport}
+              className='flex items-center gap-2 px-4 py-1.5 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors'>
               <ArrowDownToLine size={14} />
               <span>Report</span>
             </button>
@@ -252,17 +348,9 @@ export default function Photos({ jobData }) {
                     {item.location}
                   </span>
                 </div>
-                {/* <div className="mt-1 text-xs text-gray-500">
-                  {item.images?.map((img, idx) => (
-                    <span key={idx} className="mr-3">
-                      {img.fileName || `Image ${idx + 1}`}
-                    </span>
-                  ))}
-                </div> */}
               </div>
               <div className='col-span-2'>
                 <div className='flex items-center gap-2'>
-                  {/* Stacked thumbnail images */}
                   <div className='flex -space-x-2'>
                     {item.images?.slice(0, 3).map((image, idx) => (
                       <Image
@@ -286,8 +374,20 @@ export default function Photos({ jobData }) {
               </div>
               <div className='col-span-2 text-teal-600 hover:text-teal-700 transition-colors'>
                 <div className='flex items-center gap-3'>
-                  <Download size={14} />
-                  <span>Download</span>
+                  <button
+                    className='flex items-center justify-center gap-x-1'
+                    onClick={() =>
+                      item.count === 1
+                        ? downloadSingleImage(item.images[0]?.url)
+                        : downloadZipForLabel(item)
+                    }>
+                    <Download size={14} />
+                    <span>
+                      {item.count === 1
+                        ? "Download Image"
+                        : `ZIP (${item.count})`}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
