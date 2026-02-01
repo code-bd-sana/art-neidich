@@ -1,3 +1,5 @@
+"use client";
+
 import {
   pdf,
   Document,
@@ -183,11 +185,69 @@ const Footer = () => (
   </View>
 );
 
-export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
-  console.log(jobData);
+const convertToPngBase64 = async (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image(); // ← Use window.Image instead of Image
+    img.crossOrigin = "anonymous";
 
-  // Convert imagesByLabel to array for easier pagination
-  const sections = Object.entries(imagesByLabel);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      const base64 = canvas.toDataURL("image/png"); // or "image/jpeg", 0.85
+      resolve(base64);
+    };
+
+    img.onerror = (err) => {
+      console.error("Image load failed:", url, err);
+      reject(err);
+    };
+
+    img.src = url;
+  });
+};
+export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
+  console.log("Original imagesByLabel:", imagesByLabel);
+
+  const processedByLabel = {};
+
+  for (const [label, images] of Object.entries(imagesByLabel)) {
+    processedByLabel[label] = await Promise.all(
+      images.map(async (img) => {
+        if (!img?.url) return img;
+
+        const cleanUrl = cleanImageUrl(img.url);
+        const ext =
+          (img.mimeType?.split("/")[1] || "").toLowerCase() ||
+          cleanUrl.split(".").pop()?.split("?")[0]?.toLowerCase() ||
+          "";
+
+        if (ext === "webp") {
+          try {
+            const base64 = await convertToPngBase64(cleanUrl);
+            console.log(`Converted ${img.fileName} to PNG base64`);
+            return { ...img, url: base64 };
+          } catch (err) {
+            console.warn(`WebP conversion failed for ${img.fileName}:`, err);
+            return { ...img, url: null }; // → will show your "Image not available" placeholder
+          }
+        }
+
+        // Non-webp → just clean URL
+        return { ...img, url: cleanUrl };
+      }),
+    );
+  }
+
+  console.log("Processed imagesByLabel:", processedByLabel);
+
+  const sections = Object.entries(processedByLabel);
 
   // Calculate how many sections per page
   const sectionsPerPage = 2;
