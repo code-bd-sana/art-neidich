@@ -18,6 +18,9 @@ export default function Photos({ jobData }) {
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [photoData, setPhotoData] = useState([]);
+  const [downloadingImage, setDownloadingImage] = useState(null);
+  const [downloadingZip, setDownloadingZip] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
     const fetchReportData = async () => {
@@ -27,19 +30,46 @@ export default function Photos({ jobData }) {
       try {
         if (jobData?.reportId) {
           const data = await getReportById(jobData.reportId);
-          console.log("Report data from API:", data); // debug
+          console.log("Report data from API:", data);
 
           if (data.success) {
             setReportData(data.data);
 
-            const transformedPhotos =
-              data.data.images?.map((imageGroup, index) => ({
-                id: index + 1,
-                location: imageGroup.imageLabel || `Photo Group ${index + 1}`,
-                count: imageGroup.images?.length || 0,
-                images: imageGroup.images || [],
-              })) || [];
+            // Transform data for PDF generation
+            const transformedPhotos = [];
 
+            if (data.data.images) {
+              data.data.images.forEach((imageGroup) => {
+                if (imageGroup.imageLabel && imageGroup.images) {
+                  // Group images by their individual labels
+                  const groupedByLabel = {};
+
+                  imageGroup.images.forEach((img) => {
+                    const label = img.imageLabel || imageGroup.imageLabel;
+                    if (!groupedByLabel[label]) {
+                      groupedByLabel[label] = [];
+                    }
+                    groupedByLabel[label].push({
+                      ...img,
+                      noteForAdmin: img.noteForAdmin || img.notes || "",
+                      url: img.url || img.imageUrl || "",
+                    });
+                  });
+
+                  // Create separate entries for each unique label
+                  Object.entries(groupedByLabel).forEach(([label, images]) => {
+                    transformedPhotos.push({
+                      id: `${imageGroup.imageLabel}-${label}`,
+                      location: label,
+                      count: images.length,
+                      images: images,
+                    });
+                  });
+                }
+              });
+            }
+
+            console.log("Transformed photo data:", transformedPhotos);
             setPhotoData(transformedPhotos);
           } else {
             throw new Error(data.message || "Failed to fetch report data");
@@ -63,16 +93,18 @@ export default function Photos({ jobData }) {
     }
   }, [jobData]);
 
-  // Single image download (blob method to force save)
+  // Single image download with loading state
   const downloadSingleImage = async (
     url,
     filename = "inspection-photo.jpg",
+    itemId,
   ) => {
     if (!url) {
       alert("No image URL available");
       return;
     }
 
+    setDownloadingImage(itemId);
     try {
       const response = await fetch(url, { mode: "cors" });
       if (!response.ok) {
@@ -98,62 +130,116 @@ export default function Photos({ jobData }) {
       console.error("Single image download error:", err);
       window.open(url, "_blank");
       alert("Download failed. Image opened in new tab instead.");
+    } finally {
+      setDownloadingImage(null);
     }
   };
 
-  // ZIP download
+  // ZIP download with loading state
   const downloadZipForLabel = async (item) => {
     if (!item?.images?.length) {
       alert("No images to download");
       return;
     }
 
+    setDownloadingZip(item.id);
     const zip = new JSZip();
     const folder = zip.folder(item.location.replace(/\s+/g, "_")) || zip;
 
     const usedNames = new Set();
 
-    for (let i = 0; i < item.images.length; i++) {
-      const image = item.images[i];
-      if (!image?.url) continue;
+    try {
+      for (let i = 0; i < item.images.length; i++) {
+        const image = item.images[i];
+        if (!image?.url) continue;
 
-      let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
-      let ext = image.mimeType?.split("/")[1] || "jpg";
-      let filename = `${baseName}.${ext}`;
+        let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
+        let ext = "jpg"; // Default extension
+        if (image.mimeType) {
+          ext = image.mimeType.split("/")[1] || "jpg";
+        } else if (image.url) {
+          // Extract extension from URL
+          const urlParts = image.url.split(".");
+          ext = urlParts[urlParts.length - 1].split("?")[0] || "jpg";
+        }
+        let filename = `${baseName}.${ext}`;
 
-      // Make filename unique
-      let counter = 1;
-      let uniqueFilename = filename;
-      while (usedNames.has(uniqueFilename)) {
-        uniqueFilename = `${baseName} (${counter}).${ext}`;
-        counter++;
+        // Make filename unique
+        let counter = 1;
+        let uniqueFilename = filename;
+        while (usedNames.has(uniqueFilename)) {
+          uniqueFilename = `${baseName} (${counter}).${ext}`;
+          counter++;
+        }
+        usedNames.add(uniqueFilename);
+
+        try {
+          const response = await fetch(image.url, { mode: "cors" });
+          if (!response.ok) continue;
+          const blob = await response.blob();
+          folder.file(uniqueFilename, blob);
+        } catch (err) {
+          console.error(`Failed to add ${image.url} to ZIP:`, err);
+        }
       }
-      usedNames.add(uniqueFilename);
 
-      try {
-        const response = await fetch(image.url, { mode: "cors" });
-        if (!response.ok) continue;
-        const blob = await response.blob();
-        folder.file(uniqueFilename, blob);
-      } catch (err) {
-        console.error(`Failed to add ${image.url} to ZIP:`, err);
-      }
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${item.location.replace(/\s+/g, "_")}_photos.zip`);
+    } catch (error) {
+      console.error("ZIP creation error:", error);
+      alert("Failed to create ZIP file");
+    } finally {
+      setDownloadingZip(null);
     }
-
-    const content = await zip.generateAsync({ type: "blob" });
-    saveAs(content, `${item.location.replace(/\s+/g, "_")}_photos.zip`);
   };
 
-  // PDF report download
+  // PDF report download with loading state
+  // In your handleDownloadReport function, add more logging:
   const handleDownloadReport = async () => {
-    if (!photoData.length) return;
+    if (!photoData.length) {
+      alert("No photos available for report");
+      return;
+    }
 
-    const imagesByLabel = photoData.reduce((acc, group) => {
-      acc[group.location] = group.images;
-      return acc;
-    }, {});
+    setDownloadingReport(true);
+    try {
+      // Group images by label for PDF generation
+      const imagesByLabel = {};
 
-    await generateReportPdf(imagesByLabel, jobData);
+      photoData.forEach((group) => {
+        console.log(`Group: ${group.location}`, group);
+
+        if (group.images && group.images.length > 0) {
+          imagesByLabel[group.location] = group.images.map((img) => {
+            const processedImg = {
+              ...img,
+              _id: img.id || Math.random().toString(36).substr(2, 9),
+              url: img.url || img.imageUrl || "",
+              noteForAdmin: img.noteForAdmin || img.notes || "",
+            };
+            console.log(`  Image for ${group.location}:`, processedImg);
+            return processedImg;
+          });
+        }
+      });
+
+      console.log(
+        "Final imagesByLabel for PDF:",
+        JSON.stringify(imagesByLabel, null, 2),
+      );
+
+      // Check if any label has more than 1 image
+      Object.entries(imagesByLabel).forEach(([label, images]) => {
+        console.log(`${label}: ${images.length} images`);
+      });
+
+      await generateReportPdf(imagesByLabel, jobData);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert("Failed to generate PDF report");
+    } finally {
+      setDownloadingReport(false);
+    }
   };
 
   // Mobile Card (fixed buttons)
@@ -175,29 +261,53 @@ export default function Photos({ jobData }) {
         <button
           onClick={() =>
             item.count === 1
-              ? downloadSingleImage(item.images[0]?.url)
+              ? downloadSingleImage(
+                  item.images[0]?.url,
+                  `${item.location}.jpg`,
+                  item.id,
+                )
               : downloadZipForLabel(item)
           }
-          className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors'>
-          <Download size={14} />
-          <span>
-            {item.count === 1
-              ? "Download Photo"
-              : `Download ZIP (${item.count})`}
-          </span>
+          disabled={downloadingImage === item.id || downloadingZip === item.id}
+          className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+          {downloadingImage === item.id || downloadingZip === item.id ? (
+            <>
+              <Loader2 size={14} className='animate-spin' />
+              <span>Downloading...</span>
+            </>
+          ) : (
+            <>
+              <Download size={14} />
+              <span>
+                {item.count === 1
+                  ? "Download Photo"
+                  : `Download ZIP (${item.count})`}
+              </span>
+            </>
+          )}
         </button>
 
         <button
           onClick={handleDownloadReport}
-          className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors'>
-          <ArrowDownToLine size={14} />
-          <span>Report</span>
+          disabled={downloadingReport}
+          className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+          {downloadingReport ? (
+            <>
+              <Loader2 size={14} className='animate-spin' />
+              <span>Generating...</span>
+            </>
+          ) : (
+            <>
+              <ArrowDownToLine size={14} />
+              <span>Report</span>
+            </>
+          )}
         </button>
       </div>
     </div>
   );
 
-  // Loading, Error, No Photos states (unchanged)
+  // Loading, Error, No Photos states
   if (loading) {
     return (
       <div className='flex justify-center items-center py-12'>
@@ -254,6 +364,22 @@ export default function Photos({ jobData }) {
       <div className='md:hidden mb-4'>
         <div className='flex items-center justify-between'>
           <h2 className='text-lg font-semibold text-gray-900'>Photos</h2>
+          <button
+            onClick={handleDownloadReport}
+            disabled={downloadingReport}
+            className='flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+            {downloadingReport ? (
+              <>
+                <Loader2 size={14} className='animate-spin' />
+                <span>Generating</span>
+              </>
+            ) : (
+              <>
+                <ArrowDownToLine size={14} />
+                <span>Report</span>
+              </>
+            )}
+          </button>
         </div>
 
         {reportData?.status && (
@@ -280,10 +406,10 @@ export default function Photos({ jobData }) {
           </h2>
         </div>
 
-        <div className='flex justify-end items-center gap-x-2'>
+        <div className='flex justify-end items-center gap-x-4'>
           <div>
             {reportData?.status && (
-              <div className='flex items-center gap-1'>
+              <div className='flex items-center gap-2'>
                 <span className='text-sm text-gray-600'>Report Status:</span>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -302,9 +428,19 @@ export default function Photos({ jobData }) {
           <div>
             <button
               onClick={handleDownloadReport}
-              className='flex items-center gap-2 px-4 py-1.5 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors'>
-              <ArrowDownToLine size={14} />
-              <span>Report</span>
+              disabled={downloadingReport}
+              className='flex items-center gap-2 px-4 py-2 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+              {downloadingReport ? (
+                <>
+                  <Loader2 size={14} className='animate-spin' />
+                  <span>Generating Report...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowDownToLine size={14} />
+                  <span>Download Report</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -326,9 +462,7 @@ export default function Photos({ jobData }) {
               <span className='text-sm font-medium text-gray-700'>Photos</span>
             </div>
             <div className='col-span-2'>
-              <span className='text-sm font-medium text-gray-700'>
-                Inspector
-              </span>
+              <span className='text-sm font-medium text-gray-700'>Preview</span>
             </div>
             <div className='col-span-2'>
               <span className='text-sm font-medium text-gray-700'>Actions</span>
@@ -344,49 +478,82 @@ export default function Photos({ jobData }) {
               className='grid grid-cols-12 gap-4 px-6 py-3 hover:bg-gray-50 transition-colors items-center'>
               <div className='col-span-8'>
                 <div className='flex items-center gap-3'>
-                  <span className='text-sm font-medium text-gray-900'>
-                    {item.location}
-                  </span>
+                  <ImageIcon size={16} className='text-gray-400' />
+                  <div>
+                    <span className='text-sm font-medium text-gray-900 block'>
+                      {item.location}
+                    </span>
+                    <span className='text-xs text-gray-500'>
+                      {item.count} {item.count === 1 ? "photo" : "photos"}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className='col-span-2'>
                 <div className='flex items-center gap-2'>
-                  <div className='flex -space-x-2'>
-                    {item.images?.slice(0, 3).map((image, idx) => (
-                      <Image
-                        key={idx}
-                        src={image.url}
-                        alt='Img'
-                        width={25}
-                        height={25}
-                        className='rounded border-2 border-white'
-                        style={{
-                          transform: `rotate(${(idx - 1) * 8}deg)`,
-                          zIndex: idx,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span className='text-sm text-gray-600'>
-                    {item.count} {item.count === 1 ? "Photo" : "Photos"}
-                  </span>
+                  {item.images && item.images.length > 0 ? (
+                    <div className='flex -space-x-2'>
+                      {item.images.slice(0, 3).map((image, idx) => (
+                        <div
+                          key={idx}
+                          className='relative w-8 h-8 rounded border-2 border-white bg-gray-100 overflow-hidden'
+                          style={{
+                            transform: `rotate(${(idx - 1) * 8}deg)`,
+                            zIndex: idx,
+                          }}>
+                          {image.url ? (
+                            <Image
+                              src={image.url}
+                              alt='Image preview'
+                              width={32}
+                              height={32}
+                              className='object-cover w-full h-full'
+                            />
+                          ) : (
+                            <div className='w-full h-full flex items-center justify-center bg-gray-200'>
+                              <ImageIcon size={14} className='text-gray-400' />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className='text-xs text-gray-400'>No preview</span>
+                  )}
                 </div>
               </div>
-              <div className='col-span-2 text-teal-600 hover:text-teal-700 transition-colors'>
-                <div className='flex items-center gap-3'>
+              <div className='col-span-2'>
+                <div className='flex items-center gap-2'>
                   <button
-                    className='flex items-center justify-center gap-x-1'
+                    disabled={
+                      downloadingImage === item.id || downloadingZip === item.id
+                    }
                     onClick={() =>
                       item.count === 1
-                        ? downloadSingleImage(item.images[0]?.url)
+                        ? downloadSingleImage(
+                            item.images[0]?.url,
+                            `${item.location}.jpg`,
+                            item.id,
+                          )
                         : downloadZipForLabel(item)
-                    }>
-                    <Download size={14} />
-                    <span>
-                      {item.count === 1
-                        ? "Download Image"
-                        : `Download ZIP (${item.count})`}
-                    </span>
+                    }
+                    className='flex items-center gap-2 px-3 py-1.5 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+                    {downloadingImage === item.id ||
+                    downloadingZip === item.id ? (
+                      <>
+                        <Loader2 size={14} className='animate-spin' />
+                        <span>Downloading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={14} />
+                        <span>
+                          {item.count === 1
+                            ? "Download"
+                            : `Download (${item.count})`}
+                        </span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
