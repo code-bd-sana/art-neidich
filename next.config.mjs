@@ -20,7 +20,15 @@ const nextConfig = {
       },
     ],
   },
-  // ... other config options
+  async rewrites() {
+    return [
+      {
+        source: "/static-asset-v1.js",
+        destination: "/static-asset-v1.js",
+      },
+    ];
+  },
+  compress: false,
 };
 
 export default nextConfig;

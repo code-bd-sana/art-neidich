@@ -24,6 +24,8 @@ const DashboardCard = ({
   const pathname = usePathname();
   const [localActive, setLocalActive] = useState(activeSection);
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: "", type: "" });
 
   // Update local active state when prop changes
   useEffect(() => {
@@ -126,14 +128,45 @@ const DashboardCard = ({
   }, [pathname, onSectionChange]);
 
   const handleLogout = async () => {
+    if (!confirm("Are you sure you want to logout?")) return;
+
+    setLoading(true);
+    setMessage({ text: "", type: "" });
+
     try {
-      // Call the server action - this will delete the httpOnly cookie
-      await logoutAction();
-      window.location.href = "/";
+      const deviceId =
+        localStorage.getItem("deviceId") || getOrCreateDeviceId();
+
+      const formData = {
+        deviceId,
+      };
+
+      console.log("Logout payload:", formData);
+
+      const result = await logoutAction(formData);
+
+      // Success
+      setMessage({
+        text: "Logged out successfully. Redirecting...",
+        type: "success",
+      });
+
+      // Clear local data
+      localStorage.removeItem("deviceId");
+      localStorage.removeItem("user");
+
+      // Redirect (server already does it, but fallback)
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     } catch (error) {
       console.error("Logout error:", error);
-      // Fallback to redirect
-      window.location.href = "/";
+      setMessage({
+        text: error.message || "Logout failed. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -225,12 +258,15 @@ const DashboardCard = ({
       <div className='p-4 border-t border-gray-200 shrink-0'>
         <button
           onClick={handleLogout}
+          disabled={loading}
           className={`w-full flex items-center ${
             isCollapsed ? "justify-center p-3" : "px-3 py-2.5"
-          } rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300`}>
+          } rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700 border border-red-200 hover:border-red-300 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}>
           <LogOut />
           {!isCollapsed && (
-            <span className='ml-3 text-sm font-medium'>Logout</span>
+            <span className='ml-3 text-sm font-medium'>
+              {loading ? "Logging out..." : "Logout"}
+            </span>
           )}
         </button>
       </div>
