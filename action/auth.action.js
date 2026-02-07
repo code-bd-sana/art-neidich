@@ -1,7 +1,9 @@
 "use server";
 
 import { apiFetch } from "@/lib/fetcher";
-import { cookies } from "next/headers";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 /* ======================
    Register
@@ -48,6 +50,10 @@ export async function loginAction(formData) {
       body: JSON.stringify({
         email: formData.email,
         password: formData.password,
+        deviceId: formData.deviceId,
+        token: formData.token,
+        platform: formData.platform,
+        deviceName: formData.deviceName,
       }),
     });
 
@@ -75,23 +81,49 @@ export async function loginAction(formData) {
 
 /* ======================
    Logout - Server Action
+   POST /auth/logout
 ====================== */
-export async function logoutAction() {
+export async function logoutAction(formData) {
   try {
-    const cookieStore = await cookies();
+    console.log("Logout action called with data:", formData);
 
-    // Delete the httpOnly cookie (same way you set it)
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      console.warn("No token found in cookies during logout");
+      // Continue anyway – backend may still process if deviceId is valid
+    }
+
+    const deviceId = formData.deviceId;
+
+    if (!deviceId) {
+      throw new Error("deviceId is required for logout");
+    }
+
+    // Call backend logout endpoint
+    const response = await apiFetch("/auth/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}), // only add if token exists
+      },
+      body: JSON.stringify({ deviceId }),
+    });
+
+    console.log("Backend logout response:", response);
+
+    // Delete the cookie
     cookieStore.delete("token");
 
-    // IMPORTANT: Force redirect from server
+    // Force redirect
     redirect("/");
   } catch (error) {
-    console.error("Logout error:", error);
-    // Still try to redirect
+    console.error("Logout action error:", error);
+    // Still redirect even on error
     redirect("/");
   }
 }
-
 /* ======================
    Get Current User Profile
    GET /user/profile
