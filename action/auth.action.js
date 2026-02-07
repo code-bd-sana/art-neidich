@@ -67,7 +67,8 @@ export async function loginAction(formData) {
 
     cookieStore.set("token", String(token), {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
+      // secure: process.env.NODE_ENV === "production",
       path: "/",
       sameSite: "lax",
     });
