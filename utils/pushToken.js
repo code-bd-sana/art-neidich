@@ -19,6 +19,7 @@ export async function getWebPushToken() {
   if (permission !== "granted") {
     throw new Error("Notifications required. Please allow them.");
   }
+  // for fcm
 
   const registration = await navigator.serviceWorker.register(
     "/static/workers/push.js",
