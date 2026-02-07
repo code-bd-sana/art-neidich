@@ -1,4 +1,4 @@
-// public/push-worker-v1.js
+// public/_next/static/workers/push.js
 importScripts(
   "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
 );
@@ -19,12 +19,12 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("[push-worker-v1] Background Message ", payload);
+  console.log("[push] Background Message ", payload);
 
   const notificationTitle = payload.notification?.title || "New Notification";
   const notificationOptions = {
     body: payload.notification?.body || "",
-    icon: "/icon-192x192.png", // optional – add your icon path
+    icon: "/icon-192x192.png",
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

@@ -23,8 +23,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/static-asset-v1.js",
-        destination: "/static-asset-v1.js",
+        source: "/_next/static/workers/push.js",
+        destination: "/_next/static/workers/push.js",
       },
     ];
   },
