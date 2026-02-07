@@ -19,11 +19,8 @@ export async function getWebPushToken() {
   if (permission !== "granted") {
     throw new Error("Notifications required. Please allow them.");
   }
-  // for fcm
 
-  const registration = await navigator.serviceWorker.register(
-    "/static/workers/push.js",
-  );
+  const registration = await navigator.serviceWorker.register("/sw.js");
 
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidKey) throw new Error("VAPID key missing");

@@ -20,11 +20,17 @@ const nextConfig = {
       },
     ],
   },
-  async rewrites() {
+  async headers() {
     return [
       {
-        source: "/_next/static/workers/push.js",
-        destination: "/_next/static/workers/push.js",
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
       },
     ];
   },
