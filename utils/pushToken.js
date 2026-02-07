@@ -21,7 +21,7 @@ export async function getWebPushToken() {
   }
 
   const registration = await navigator.serviceWorker.register(
-    "/_next/static/workers/push.js",
+    "/static/workers/push.js",
   );
 
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
