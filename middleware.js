@@ -15,7 +15,7 @@ export function parseJwt(token) {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
 
     return JSON.parse(jsonPayload);
@@ -28,8 +28,18 @@ export function middleware(req) {
   const { pathname, origin } = req.nextUrl;
   const now = Math.floor(Date.now() / 1000);
 
+  // Allow service worker and a few static root files to bypass middleware
+  if (
+    pathname === "/sw.js" ||
+    pathname === "/manifest.json" ||
+    pathname === "/robots.txt"
+  ) {
+    return NextResponse.next();
+  }
+
   // Auth-only public pages (login, register etc.)
-  const authPages = ["/",
+  const authPages = [
+    "/",
     "/login",
     "/register",
     "/forgot-password",
@@ -43,8 +53,7 @@ export function middleware(req) {
 
   // Read token from cookies
   const token =
-    req.cookies.get("token")?.value ||
-    req.cookies.get("accessToken")?.value 
+    req.cookies.get("token")?.value || req.cookies.get("accessToken")?.value;
 
   const payload = token ? parseJwt(token) : null;
 
@@ -64,8 +73,6 @@ export function middleware(req) {
     const loginUrl = new URL("/", origin);
     return NextResponse.redirect(loginUrl);
   }
-
-
 
   // Allow other authenticated users
   return NextResponse.next();

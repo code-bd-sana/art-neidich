@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev-with-sw": "npm run gen-sw && next dev",
     "dev-https": "next dev --experimental-https",
+    "gen-sw": "node ./scripts/generate-sw.js",
+    "prebuild": "node ./scripts/generate-sw.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

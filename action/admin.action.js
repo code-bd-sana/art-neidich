@@ -26,8 +26,6 @@ export async function getAdminOverviewAction() {
       cache: "no-store", // always fresh data
     });
 
-    console.log("Admin overview response:", response);
-
     return response?.data || response; // return the data of the API
   } catch (error) {
     console.error("Get admin overview error:", error);

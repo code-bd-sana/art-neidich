@@ -46,7 +46,6 @@ export default function LoginRegisterPage() {
     });
   };
 
-  // Handle login submission
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -54,74 +53,77 @@ export default function LoginRegisterPage() {
 
     try {
       const deviceId = getOrCreateDeviceId();
-
       let token = "";
 
+      // SIMPLE FCM TOKEN GETTER
       try {
-        token = await getWebPushToken();
-        console.log("Real token obtained:", token.substring(0, 30) + "...");
-      } catch (err) {
-        console.warn("Push token generation failed:", err.message);
-        // Use non-empty fallback so backend accepts (Zod min(1))
-        token = `web-fallback-${deviceId.slice(0, 8)}-${Date.now()}`;
+        // 1. Ask permission
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          throw new Error("Notifications not allowed");
+        }
+
+        // 2. Register service worker with correct scope
+        const registration = await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+        });
+
+        console.log("Service worker registered");
+
+        // 3. Wait for it to be ready
+        await navigator.serviceWorker.ready;
+
+        // 4. Get Firebase token
+        const { getToken } = await import("firebase/messaging");
+        const { messaging } = await import("@/lib/firebase");
+
+        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+
+        token = await getToken(messaging, {
+          vapidKey,
+          serviceWorkerRegistration: registration, // ADD THIS
+        });
+
+        console.log("✅ Real FCM token:", token.substring(0, 30) + "...");
+      } catch (error) {
+        console.warn("FCM failed, using fallback:", error.message);
+        token = `web-fallback-${Date.now()}`;
         setMessage({
-          text: "Notifications failed to enable. You can still login, but push may not work. Please check browser settings.",
-          type: "warning", // or "error" if you prefer
+          text: "Notifications not enabled, but login continues",
+          type: "warning",
         });
       }
 
+      // Send login data
       const loginPayload = {
         ...loginData,
         deviceId,
-        token, // now guaranteed non-empty string
+        token,
         platform: "web",
-        deviceName: navigator.userAgent.slice(0, 200) || "Web Browser",
+        deviceName: navigator.userAgent,
       };
 
-      console.log("Sending payload:", {
-        email: loginPayload.email,
-        deviceId,
-        tokenLength: token.length,
-        tokenStart: token.substring(0, 20) + "...",
-        platform: loginPayload.platform,
-      });
+      console.log("Login with token:", token.substring(0, 30) + "...");
 
       const result = await loginAction(loginPayload);
 
-      // Call server action directly
-      // const result = await loginAction(loginData);
+      if (result.success) {
+        setMessage({ text: "Login successful!", type: "success" });
 
-      console.log("Login result:", result);
-
-      if (result.success || result.data?.success) {
-        setMessage({
-          text: "Login successful! Redirecting...",
-          type: "success",
-        });
-
-        // Store user data in localStorage (excluding sensitive info)
+        // Store user data
         if (typeof window !== "undefined") {
-          localStorage.setItem(
-            "user",
-            JSON.stringify(result.data?.user || result.user),
-          );
+          localStorage.setItem("user", JSON.stringify(result.user || {}));
         }
 
-        // Redirect to admin dashboard after 2 seconds
+        // Redirect
         setTimeout(() => {
           window.location.href = "/dashboard";
-        }, 2000);
+        }, 1000);
       } else {
-        const errorMessage =
-          result.message || result.data?.message || "Login failed";
-        setMessage({ text: errorMessage, type: "error" });
+        setMessage({ text: result.message || "Login failed", type: "error" });
       }
     } catch (error) {
-      console.error("Login error:", error);
-      setMessage({
-        text: error.message || "Network error. Please try again.",
-        type: "error",
-      });
+      setMessage({ text: error.message, type: "error" });
     } finally {
       setLoading(false);
     }
