@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+
+# Don't commit generated service worker containing runtime keys
+/public/sw.js
