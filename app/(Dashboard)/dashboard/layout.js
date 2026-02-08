@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, cloneElement } from "react";
+import { useState, cloneElement, useEffect } from "react";
 import DashboardCard from "@/components/Dashboard/DashboardCard";
 import { PanelLeft, PanelRight, Search, User } from "lucide-react";
 import SummaryCard from "@/components/Dashboard/SummaryCard";
+import {
+  setupForegroundHandler,
+  setupForegroundMessages,
+} from "@/lib/foreground-messages";
 
 export default function DashboardLayout({ children }) {
   const [showLeftSidebarMobile, setShowLeftSidebarMobile] = useState(false);
@@ -13,6 +17,10 @@ export default function DashboardLayout({ children }) {
   const toggleRightSidebarMobile = () => setShowRightSidebarMobile((p) => !p);
 
   const closeRightSidebarMobile = () => setShowRightSidebarMobile(false);
+
+  useEffect(() => {
+    setupForegroundMessages();
+  }, []);
 
   return (
     <div className='min-h-screen flex flex-col md:flex-row overflow-hidden bg-gray-50'>

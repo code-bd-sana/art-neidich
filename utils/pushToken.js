@@ -1,36 +1,73 @@
-// utils/pushToken.js
-import { getOrCreateDeviceId } from "./deviceId";
-
+// lib/pushToken.js
 export async function getWebPushToken() {
-  if (process.env.NODE_ENV === "development") {
-    console.warn("[DEV] Bypassing real SW registration for login testing");
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        console.warn("[DEV] Permission not granted, using placeholder");
-      }
-    } catch (e) {}
-    // Return non-empty placeholder so backend accepts
-    return `web-dev-placeholder-${Date.now()}`;
+  // Check if we're in a browser
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    console.warn("Service workers not supported");
+    return `web-no-sw-${Date.now()}`;
   }
 
-  // Real production path (runs on Vercel, etc.)
+  // Check for HTTPS in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    window.location.protocol !== "https:"
+  ) {
+    console.warn("Push requires HTTPS in production");
+    return `web-no-https-${Date.now()}`;
+  }
+
+  // Request notification permission
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    throw new Error("Notifications required. Please allow them.");
+    throw new Error("Notification permission denied");
   }
 
-  const registration = await navigator.serviceWorker.register("/sw.js");
+  try {
+    // Register service worker
+    const registration = await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
+    });
 
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!vapidKey) throw new Error("VAPID key missing");
+    console.log("Service Worker registered:", registration);
 
-  const { getToken } = await import("firebase/messaging");
-  const { messaging } = await import("@/lib/firebase");
+    // Wait for service worker to be active
+    await navigator.serviceWorker.ready;
 
-  const token = await getToken(messaging, { vapidKey });
+    // Import Firebase messaging (dynamic import)
+    const { getToken } = await import("firebase/messaging");
+    const { messaging } = await import("@/lib/firebase");
 
-  if (!token) throw new Error("No token from Firebase");
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_PUBLIC_KEY;
 
-  return token;
+    if (!vapidKey) {
+      console.error("VAPID key is missing");
+      return `web-no-vapid-${Date.now()}`;
+    }
+
+    // Get FCM token
+    const token = await getToken(messaging, {
+      vapidKey,
+      serviceWorkerRegistration: registration,
+    });
+
+    if (!token) {
+      console.error("Failed to get FCM token");
+      return `web-no-token-${Date.now()}`;
+    }
+
+    console.log("FCM Token obtained:", token.substring(0, 20) + "...");
+    return token;
+  } catch (error) {
+    console.error("Error getting push token:", error);
+
+    // Fallback for development
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Using development placeholder due to error:",
+        error.message,
+      );
+      return `web-dev-fallback-${Date.now()}`;
+    }
+
+    throw error;
+  }
 }
