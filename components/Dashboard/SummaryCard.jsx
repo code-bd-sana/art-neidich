@@ -10,9 +10,12 @@ import {
   PanelRight,
   Sparkles,
   ChevronDown,
+  User,
+  FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getAdminOverviewAction } from "@/action/admin.action";
+import { getNotifications } from "@/action/notification.action";
 
 const SummaryCard = ({ isCollapsed, onToggle }) => {
   const [stats, setStats] = useState({
@@ -24,8 +27,10 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedStats, setExpandedStats] = useState({});
+  const [activities, setActivities] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
-  // Fetch real data on mount
+  // Fetch overview data
   useEffect(() => {
     const fetchOverview = async () => {
       try {
@@ -50,6 +55,71 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
 
     fetchOverview();
   }, []);
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        const result = await getNotifications();
+
+        if (result.success && result.data) {
+          // Convert notifications to activities format
+          const notificationActivities = result.data
+            .slice(0, 10)
+            .map((notif, index) => {
+              // Get first letter of title for avatar
+              const firstLetter = notif.title?.charAt(0) || "N";
+
+              // Format time
+              const time = formatTime(notif.createdAt);
+
+              // Create activity object matching your UI structure
+              return {
+                id: firstLetter,
+                title: notif.body || notif.title,
+                time: time,
+                data: notif.data,
+                type: notif.type,
+              };
+            });
+
+          setActivities(notificationActivities);
+        }
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+        // Keep empty activities array if error
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Format time function
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   const toggleStat = (index) => {
     setExpandedStats((prev) => ({
@@ -86,31 +156,6 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
       subtitle: `${stats.completedJobs} Completed Jobs`,
       icon: CheckCircle,
       iconColor: "text-gray-700",
-    },
-  ];
-
-  const activities = [
-    {
-      id: "M",
-      title: "Job #10052 for 129 Oak Lane was submitted by Michael Chen.",
-      time: "Just now",
-      action: "Tap to view report",
-    },
-    {
-      id: "M",
-      title: "Job #10051 for 450 Maple Ave was assigned to Sarah Jones.",
-      time: "2 hours ago",
-      dueDate: "Due: Dec 5, 2026",
-    },
-    {
-      id: "M",
-      title: "Job #10049 for 78 Pine Street was completed by Robert Kim.",
-      time: "Yesterday, 4:30 PM",
-    },
-    {
-      id: "M",
-      title: "New inspector David Wilson was added to the system.",
-      time: "Today, 9:15 AM",
     },
   ];
 
@@ -176,9 +221,6 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
                             )}
                           </div>
                         </div>
-                        {/* <span className='text-lg font-bold text-gray-900 ml-4'>
-                          {stat.value}
-                        </span> */}
                       </div>
                     </div>
                   ))}
@@ -186,38 +228,42 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
 
                 {/* Activity Section */}
                 <div className='mt-6 pt-4'>
-                  <h3 className='text-xs font-medium text-gray-400 uppercase tracking-wide mb-4'>
-                    Activity
-                  </h3>
-                  <div className='space-y-4'>
-                    {activities.map((activity, index) => (
-                      <div key={index} className='flex gap-3'>
-                        <div className='w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5'>
-                          <span className='text-xs font-medium text-gray-600'>
-                            {activity.id}
-                          </span>
-                        </div>
-                        <div className='flex-1 min-w-0'>
-                          <p className='text-sm text-gray-900 leading-snug'>
-                            {activity.title}
-                          </p>
-                          <p className='text-xs text-gray-500 mt-1'>
-                            {activity.time}
-                          </p>
-                          {activity.action && (
-                            <button className='text-xs text-orange-500 mt-1 flex items-center gap-1 hover:text-orange-600'>
-                              {activity.action} →
-                            </button>
-                          )}
-                          {activity.dueDate && (
-                            <p className='text-xs text-orange-500 mt-1'>
-                              {activity.dueDate}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                  <div className='flex items-center justify-between mb-4'>
+                    <h3 className='text-xs font-medium text-gray-400 uppercase tracking-wide'>
+                      Activity
+                    </h3>
+                    {notificationsLoading && (
+                      <div className='text-xs text-gray-400'>Loading...</div>
+                    )}
                   </div>
+
+                  {activities.length === 0 ? (
+                    <div className='text-center py-4'>
+                      <p className='text-sm text-gray-500'>
+                        No recent activity
+                      </p>
+                    </div>
+                  ) : (
+                    <div className='space-y-4'>
+                      {activities.map((activity, index) => (
+                        <div key={index} className='flex gap-3'>
+                          <div className='w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5'>
+                            <span className='text-xs font-medium text-gray-600'>
+                              {activity.id}
+                            </span>
+                          </div>
+                          <div className='flex-1 min-w-0'>
+                            <p className='text-sm text-gray-900 leading-snug'>
+                              {activity.title}
+                            </p>
+                            <p className='text-xs text-gray-500 mt-1'>
+                              {activity.time}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

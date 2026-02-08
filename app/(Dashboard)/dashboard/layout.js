@@ -4,10 +4,7 @@ import { useState, cloneElement, useEffect } from "react";
 import DashboardCard from "@/components/Dashboard/DashboardCard";
 import { PanelLeft, PanelRight, Search, User } from "lucide-react";
 import SummaryCard from "@/components/Dashboard/SummaryCard";
-import {
-  setupForegroundHandler,
-  setupForegroundMessages,
-} from "@/lib/foreground-messages";
+import { setupForegroundMessages } from "@/lib/foreground-messages";
 
 export default function DashboardLayout({ children }) {
   const [showLeftSidebarMobile, setShowLeftSidebarMobile] = useState(false);
