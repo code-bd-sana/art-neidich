@@ -5,6 +5,7 @@ import DashboardCard from "@/components/Dashboard/DashboardCard";
 import { PanelLeft, PanelRight, Search, User } from "lucide-react";
 import SummaryCard from "@/components/Dashboard/SummaryCard";
 import { setupForegroundMessages } from "@/lib/foreground-messages";
+import { registerServiceWorker } from "@/lib/service-worker-register";
 
 export default function DashboardLayout({ children }) {
   const [showLeftSidebarMobile, setShowLeftSidebarMobile] = useState(false);
@@ -15,9 +16,13 @@ export default function DashboardLayout({ children }) {
 
   const closeRightSidebarMobile = () => setShowRightSidebarMobile(false);
 
-  useEffect(() => {
-    setupForegroundMessages();
-  }, []);
+  // useEffect(() => {
+  //   setupForegroundMessages();
+  // }, []);
+   useEffect(() => {
+     // Register service worker
+     registerServiceWorker();
+   }, []);
 
   return (
     <div className='min-h-screen flex flex-col md:flex-row overflow-hidden bg-gray-50'>
@@ -50,9 +55,9 @@ export default function DashboardLayout({ children }) {
       )}
 
       {/* MAIN AREA */}
-      <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
+      <div className=' flex-1 flex flex-col min-w-0 overflow-hidden'>
         {/* TOP BAR */}
-        <header className='bg-white border-b border-gray-200 p-4.5 flex items-center gap-3'>
+        <header className=' bg-white border-b border-gray-200 p-4.5 flex items-center gap-3'>
           {/* Left mobile toggle */}
           <button
             onClick={() => setShowLeftSidebarMobile(true)}
@@ -68,16 +73,6 @@ export default function DashboardLayout({ children }) {
           </button>
 
           <div className='flex-1' />
-
-          {/* Search */}
-          {/* <div className='relative hidden md:block max-w-md'>
-            <Search className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
-            <input
-              type='text'
-              placeholder='Search...'
-              className='pl-10 pr-4 py-1 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-teal-500'
-            />
-          </div> */}
 
           {/* User + Mobile Toggle Button */}
           <div className='flex items-center gap-2'>
