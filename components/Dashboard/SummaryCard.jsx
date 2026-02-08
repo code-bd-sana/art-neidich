@@ -227,7 +227,7 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
                 </div>
 
                 {/* Activity Section */}
-                <div className='mt-6 pt-4'>
+                <div className='pt-4'>
                   <div className='flex items-center justify-between mb-4'>
                     <h3 className='text-xs font-medium text-gray-400 uppercase tracking-wide'>
                       Activity
@@ -244,7 +244,7 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
                       </p>
                     </div>
                   ) : (
-                    <div className='space-y-4'>
+                    <div className='space-y-2'>
                       {activities.map((activity, index) => (
                         <div key={index} className='flex gap-3'>
                           <div className='w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 mt-0.5'>
