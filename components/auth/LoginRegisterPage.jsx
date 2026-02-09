@@ -94,7 +94,7 @@ export default function LoginRegisterPage() {
 
         console.log("Step 2: Service worker registered, waiting for ready...");
 
-        // CRITICAL: Use navigator.serviceWorker.ready to get the ACTIVE registration
+        // Use navigator.serviceWorker.ready to get the ACTIVE registration
         const activeRegistration = await navigator.serviceWorker.ready;
 
         console.log("Step 3: Service worker ready. Checking registration...");
