@@ -106,7 +106,7 @@ export default function LoginRegisterPage() {
           serviceWorkerRegistration: registration,
         });
 
-        console.log("Real FCM token:", token.substring(0, 30) + "...");
+        // console.log("Real FCM token:", token.substring(0, 30) + "...");
       } catch (error) {
         console.warn("FCM failed:", error.message);
         // Don't allow login if FCM fails
@@ -124,7 +124,7 @@ export default function LoginRegisterPage() {
         deviceName: navigator.userAgent,
       };
 
-      console.log("Login with REAL FCM token");
+      // console.log("Login with REAL FCM token");
 
       const result = await loginAction(loginPayload);
 
