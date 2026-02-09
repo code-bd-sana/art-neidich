@@ -96,8 +96,8 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
 
     fetchNotifications();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Refresh every 30 minutes
+    const interval = setInterval(fetchNotifications, 1800000);
     return () => clearInterval(interval);
   }, []);
 
