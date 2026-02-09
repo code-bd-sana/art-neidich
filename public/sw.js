@@ -1,4 +1,3 @@
-// public/sw.js
 importScripts(
   "https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js",
 );
@@ -22,21 +21,37 @@ self.addEventListener("message", (event) => {
 
       // Set up background message handler
       messaging.onBackgroundMessage((payload) => {
+        // console.log("Service Worker: Background message received", payload);
+
+        // const notificationTitle =
+        //   payload.notification?.title || "New Notification";
+        // const notificationOptions = {
+        //   body: payload.notification?.body || "You have a new message",
+        //   icon: payload.notification?.icon || "/icon.svg",
+        //   badge: "/badge.svg",
+        //   data: payload.data || {},
+        // };
+
+        // return self.registration.showNotification(
+        //   notificationTitle,
+        //   notificationOptions,
+        // );
+
         console.log("Service Worker: Background message received", payload);
 
-        const notificationTitle =
-          payload.notification?.title || "New Notification";
-        const notificationOptions = {
-          body: payload.notification?.body || "You have a new message",
-          icon: payload.notification?.icon || "/icon.png",
-          badge: "/badge.png",
-          data: payload.data || {},
-        };
+        // DON'T call showNotification here
+        // Firebase already shows notification automatically
 
-        return self.registration.showNotification(
-          notificationTitle,
-          notificationOptions,
-        );
+        // Just log or process data if needed
+        // Example: send message to foreground if app is open
+        self.clients.matchAll().then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({
+              type: "BACKGROUND_NOTIFICATION",
+              payload: payload,
+            });
+          });
+        });
       });
     } catch (error) {
       console.error("Service Worker: Firebase initialization failed", error);
