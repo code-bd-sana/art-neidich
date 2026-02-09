@@ -55,25 +55,47 @@ export default function LoginRegisterPage() {
       const deviceId = getOrCreateDeviceId();
       let token = "";
 
-      // SIMPLE FCM TOKEN GETTER
-      try {
-        // 1. Ask permission
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          throw new Error("Notifications not allowed");
-        }
+      // 1. FIRST check notification permission
+      let permission = Notification.permission;
 
-        // 2. Register service worker with correct scope
+      // If permission is "default" (not asked yet), ask for it
+      if (permission === "default") {
+        permission = await Notification.requestPermission();
+      }
+
+      // If permission is "denied", show error and STOP login
+      if (permission === "denied") {
+        throw new Error(
+          "Notifications are blocked. Please enable notifications in your browser settings to login.",
+        );
+      }
+
+      // If permission is not "granted", ask again
+      if (permission !== "granted") {
+        // Request permission explicitly
+        permission = await Notification.requestPermission();
+
+        // If still not granted, show error
+        if (permission !== "granted") {
+          throw new Error(
+            "Notifications must be allowed to login. Please enable notifications.",
+          );
+        }
+      }
+
+      // 2. Now we have permission, get FCM token
+      try {
+        // Register service worker
         const registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
         });
 
         console.log("Service worker registered");
 
-        // 3. Wait for it to be ready
+        // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
 
-        // 4. Get Firebase token
+        // Get Firebase token
         const { getToken } = await import("firebase/messaging");
         const { messaging } = await import("@/lib/firebase");
 
@@ -81,34 +103,36 @@ export default function LoginRegisterPage() {
 
         token = await getToken(messaging, {
           vapidKey,
-          serviceWorkerRegistration: registration, // ADD THIS
+          serviceWorkerRegistration: registration,
         });
 
-        console.log("✅ Real FCM token:", token.substring(0, 30) + "...");
+        console.log("Real FCM token:", token.substring(0, 30) + "...");
       } catch (error) {
-        console.warn("FCM failed, using fallback:", error.message);
-        token = `web-fallback-${Date.now()}`;
-        setMessage({
-          text: "Notifications not enabled, but login continues",
-          type: "warning",
-        });
+        console.warn("FCM failed:", error.message);
+        // Don't allow login if FCM fails
+        throw new Error(
+          "Failed to setup notifications. Please refresh and try again.",
+        );
       }
 
-      // Send login data
+      // 3. Send login data with REAL FCM token
       const loginPayload = {
         ...loginData,
         deviceId,
-        token,
+        token, // This will be real FCM token
         platform: "web",
         deviceName: navigator.userAgent,
       };
 
-      console.log("Login with token:", token.substring(0, 30) + "...");
+      console.log("Login with REAL FCM token");
 
       const result = await loginAction(loginPayload);
 
       if (result.success) {
-        setMessage({ text: "Login successful!", type: "success" });
+        setMessage({
+          text: "Login successful! Notifications are enabled.",
+          type: "success",
+        });
 
         // Store user data
         if (typeof window !== "undefined") {
@@ -123,12 +147,14 @@ export default function LoginRegisterPage() {
         setMessage({ text: result.message || "Login failed", type: "error" });
       }
     } catch (error) {
-      setMessage({ text: error.message, type: "error" });
+      setMessage({
+        text: error.message,
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
-
   // Handle registration submission
   const handleRegister = async (e) => {
     e.preventDefault();

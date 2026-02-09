@@ -143,23 +143,32 @@ const DashboardCard = ({
 
       console.log("Logout payload:", formData);
 
-      const result = await logoutAction(formData);
+      // This will throw NEXT_REDIRECT error - that's OK!
+      await logoutAction(formData);
 
-      // Success
+      // If we get here, something went wrong
       setMessage({
-        text: "Logged out successfully. Redirecting...",
+        text: "Logout completed. Redirecting...",
         type: "success",
       });
 
-      // Clear local data
-      localStorage.removeItem("deviceId");
-      localStorage.removeItem("user");
-
-      // Redirect (server already does it, but fallback)
+      // Fallback redirect
       setTimeout(() => {
+        localStorage.removeItem("deviceId");
+        localStorage.removeItem("user");
         window.location.href = "/";
-      }, 1000);
+      }, 500);
     } catch (error) {
+      // Check if it's a redirect error
+      if (error.digest?.includes("NEXT_REDIRECT")) {
+        // This is SUCCESS - server redirected us
+        localStorage.removeItem("deviceId");
+        localStorage.removeItem("user");
+        // Don't show error message
+        return;
+      }
+
+      // Real error
       console.error("Logout error:", error);
       setMessage({
         text: error.message || "Logout failed. Please try again.",
@@ -169,7 +178,6 @@ const DashboardCard = ({
       setLoading(false);
     }
   };
-
   return (
     <div
       className={`h-screen flex flex-col bg-white border-r border-gray-100 fixed left-0 top-0 bottom-0 ${
