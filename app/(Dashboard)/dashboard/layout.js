@@ -16,13 +16,10 @@ export default function DashboardLayout({ children }) {
 
   const closeRightSidebarMobile = () => setShowRightSidebarMobile(false);
 
-  // useEffect(() => {
-  //   setupForegroundMessages();
-  // }, []);
-   useEffect(() => {
-     // Register service worker
-     registerServiceWorker();
-   }, []);
+  useEffect(() => {
+    // Register service worker and setup everything
+    registerServiceWorker();
+  }, []);
 
   return (
     <div className='min-h-screen flex flex-col md:flex-row overflow-hidden bg-gray-50'>
