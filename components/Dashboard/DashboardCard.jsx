@@ -141,9 +141,9 @@ const DashboardCard = ({
         deviceId,
       };
 
-      console.log("Logout payload:", formData);
+      // console.log("Logout payload:", formData);
 
-      // This will throw NEXT_REDIRECT error - that's OK!
+      // This will throw NEXT_REDIRECT error
       await logoutAction(formData);
 
       // If we get here, something went wrong
