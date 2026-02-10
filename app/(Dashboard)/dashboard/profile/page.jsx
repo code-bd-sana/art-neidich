@@ -375,16 +375,15 @@ export default function Profile() {
 
             <div>
               <label className='block font-medium text-gray-500 mb-2'>
-                <span className='font-bold'>Email *</span>
+                <span className='font-bold'>Email</span>
               </label>
               <input
                 type='email'
                 name='email'
                 value={formData.email}
                 onChange={handleInputChange}
-                required
                 className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500'
-                disabled={updatingProfile}
+                disabled={true}
               />
             </div>
           </div>
