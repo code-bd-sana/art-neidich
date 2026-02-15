@@ -118,7 +118,7 @@ export default function LoginRegisterPage() {
         // Use the activeRegistration from navigator.serviceWorker.ready
         token = await getToken(messaging, {
           vapidKey,
-          serviceWorkerRegistration: activeRegistration, // USE THIS ONE
+          serviceWorkerRegistration: activeRegistration,
         });
 
         console.log(
@@ -175,117 +175,6 @@ export default function LoginRegisterPage() {
       setLoading(false);
     }
   };
-
-  // const handleLogin = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setMessage({ text: "", type: "" });
-
-  //   try {
-  //     const deviceId = getOrCreateDeviceId();
-  //     let token = "";
-
-  //     // 1. FIRST check notification permission
-  //     let permission = Notification.permission;
-
-  //     // If permission is "default" (not asked yet), ask for it
-  //     if (permission === "default") {
-  //       permission = await Notification.requestPermission();
-  //     }
-
-  //     // If permission is "denied", show error and STOP login
-  //     if (permission === "denied") {
-  //       throw new Error(
-  //         "Notifications are blocked. Please enable notifications in your browser settings to login.",
-  //       );
-  //     }
-
-  //     // If permission is not "granted", ask again
-  //     if (permission !== "granted") {
-  //       // Request permission explicitly
-  //       permission = await Notification.requestPermission();
-
-  //       // If still not granted, show error
-  //       if (permission !== "granted") {
-  //         throw new Error(
-  //           "Notifications must be allowed to login. Please enable notifications.",
-  //         );
-  //       }
-  //     }
-
-  //     // 2. Now we have permission, get FCM token
-  //     try {
-  //       // Register service worker
-  //       const registration = await navigator.serviceWorker.register("/sw.js", {
-  //         scope: "/",
-  //       });
-
-  //       console.log("Service worker registered");
-
-  //       // Wait for service worker to be ready
-  //       await navigator.serviceWorker.ready;
-
-  //       // Get Firebase token
-  //       const { getToken } = await import("firebase/messaging");
-  //       const { messaging } = await import("@/lib/firebase");
-
-  //       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-
-  //       token = await getToken(messaging, {
-  //         vapidKey,
-  //         serviceWorkerRegistration: registration,
-  //       });
-
-  //       // console.log("Real FCM token:", token.substring(0, 30) + "...");
-  //     } catch (error) {
-  //       console.warn("FCM failed:", error.message);
-  //       // Don't allow login if FCM fails
-  //       throw new Error(
-  //         "Failed to setup notifications. Please refresh and try again.",
-  //       );
-  //     }
-
-  //     // 3. Send login data with REAL FCM token
-  //     const loginPayload = {
-  //       ...loginData,
-  //       deviceId,
-  //       token, // This will be real FCM token
-  //       platform: "web",
-  //       deviceName: navigator.userAgent,
-  //     };
-
-  //     // console.log("Login with REAL FCM token");
-
-  //     const result = await loginAction(loginPayload);
-
-  //     if (result.success) {
-  //       setMessage({
-  //         text: "Login successful! Notifications are enabled.",
-  //         type: "success",
-  //       });
-
-  //       // Store user data
-  //       if (typeof window !== "undefined") {
-  //         localStorage.setItem("user", JSON.stringify(result.user || {}));
-  //       }
-
-  //       // Redirect
-  //       setTimeout(() => {
-  //         window.location.href = "/dashboard";
-  //       }, 1000);
-  //     } else {
-  //       setMessage({ text: result.message || "Login failed", type: "error" });
-  //     }
-  //   } catch (error) {
-  //     setMessage({
-  //       text: error.message,
-  //       type: "error",
-  //     });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  // Handle registration submission
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -363,7 +252,7 @@ export default function LoginRegisterPage() {
               className={`flex-1 py-4 text-center font-medium transition-colors ${
                 activeTab === "login"
                   ? "text-[#2D8D7C] border-b-2 border-[#2D8D7C] bg-blue-50"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 "
               }`}
               onClick={() => setActiveTab("login")}>
               Login
