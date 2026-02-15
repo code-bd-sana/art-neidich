@@ -30,10 +30,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 60,
   },
-  companySubtitle: {
+  websiteLinks: {
     fontSize: 8,
     color: "#474747",
-    marginBottom: 6,
+    marginBottom: 2,
+  },
+  companySubtitle: {
+    fontSize: 8,
+    color: "#000000",
+    marginBottom: 2,
   },
   mainTitle: {
     fontSize: 18,
@@ -42,9 +47,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   attachmentText: {
-    fontSize: 10,
-    color: "#666666",
-    marginTop: 2,
+    fontSize: 9,
+    color: "#222325",
+    marginTop: 1,
+    fontWeight: "bold",
   },
   infoSection: {
     marginTop: 15,
@@ -77,18 +83,21 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   label: {
-    fontWeight: "bold",
-    marginRight: 8,
+    fontWeight: "semibold",
+    marginRight: 4,
+    color: "#222325",
   },
   value: {
     flex: 1,
     color: "#5D5656",
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
+    fontSize: 11,
+    fontWeight: "semibold",
+    marginTop: 10,
     marginBottom: 10,
     color: "#323539",
+    textAlign: "center",
   },
   sectionContainer: {
     padding: 15,
@@ -104,6 +113,7 @@ const styles = StyleSheet.create({
   },
   imageSingle: {
     width: "48%",
+    alignSelf: "center",
   },
   image: {
     width: "100%",
@@ -136,7 +146,8 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     marginHorizontal: 15,
-    fontSize: 8,
+    fontSize: 7,
+    fontWeight: "semibold",
     lineHeight: 1.5,
     color: "#333333",
   },
@@ -161,10 +172,21 @@ const cleanImageUrl = (url) => {
 const Header = ({ jobData }) => (
   <View style={styles.headerContainer} fixed>
     <Image src={HEADER_IMAGE_URL} alt='Img' style={styles.headerImage} />
-    <Text style={styles.companySubtitle}>
-      A Div. of Lone Star Building Inspection, Inc.
+    {/* Link of both sites, that will redirect */}
+    <Text style={styles.websiteLinks}>
+      <Text
+        onPress={() => window.open("https://www.FHAInspection.com", "_blank")}>
+        www.FHAInspection.com
+      </Text>{" "}
+      /{" "}
+      <Text onPress={() => window.open("https://www.artneidich.com", "_blank")}>
+        www.artneidich.com
+      </Text>
     </Text>
-    <Text style={styles.mainTitle}>Inspection report</Text>
+    <Text style={styles.companySubtitle}>
+      A division of Lone Star Building Inspection, Inc.
+    </Text>
+    {/* <Text style={styles.mainTitle}>Inspection report</Text> */}
     <Text style={styles.attachmentText}>
       Attachment to FHA form # {jobData?.fhaCaseDetailsNo || "92051"}
     </Text>
@@ -177,9 +199,8 @@ const Footer = () => (
     <Image src={FOOTER_LEFT_IMAGE_URL} alt='Img' style={styles.footerImage} />
     <Text style={styles.footerText}>
       All Utilities Are On And Tested Unless Otherwise Noted{"\n"}
-      TREC Lic. #10546 | TSBPE Lic. #1-38386 | Code Enforcement Lic. #7055 |
-      HUD-FHA Fee Reg. #{"\n"}
-      D683 & 203K - D0931
+      TREC Lic. # 10546 | TSBPE Lic. # I-3836 | Code Enforcement Lic. # 7055 |
+      HUD-FHA Fee Reg.# D683 & 203K – D0931
     </Text>
     <Image src={FOOTER_RIGHT_IMAGE_URL} alt='Img' style={styles.footerImage} />
   </View>
@@ -187,7 +208,7 @@ const Footer = () => (
 
 const convertToPngBase64 = async (url) => {
   return new Promise((resolve, reject) => {
-    const img = new window.Image(); // ← Use window.Image instead of Image
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
 
     img.onload = () => {
@@ -212,6 +233,7 @@ const convertToPngBase64 = async (url) => {
     img.src = url;
   });
 };
+
 export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
   console.log("Original imagesByLabel:", imagesByLabel);
 
@@ -235,11 +257,10 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
             return { ...img, url: base64 };
           } catch (err) {
             console.warn(`WebP conversion failed for ${img.fileName}:`, err);
-            return { ...img, url: null }; // → will show your "Image not available" placeholder
+            return { ...img, url: null };
           }
         }
 
-        // Non-webp → just clean URL
         return { ...img, url: cleanUrl };
       }),
     );
@@ -263,31 +284,43 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <View style={styles.infoLeft}>
+              <Text style={styles.label}>Date of Inspection:</Text>
+              <Text style={styles.label}>
+                {jobData?.inspectionDate || new Date().toLocaleDateString()}
+              </Text>
+            </View>
+            <View style={styles.infoRight}>
+              <Text style={[styles.label, { marginLeft: 20 }]}>CASE #</Text>
+              <Text
+                style={[
+                  styles.value,
+                  { fontWeight: "semibold", color: "#222325" },
+                ]}>
+                {jobData?.fhaCaseDetailsNo || jobData?.caseNumber || "N/A"}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.infoRow}>
+            <View style={styles.infoLeft}>
               <Text style={styles.label}>Type of Inspection:</Text>
               <Text style={styles.value}>
                 {jobData?.formType || "HUD-FHA 92051 Compliance - FINAL"}
               </Text>
             </View>
             <View style={styles.infoRight}>
-              <Text style={styles.label}>Date of Inspection:</Text>
-              <Text style={styles.value}>
-                {jobData?.inspectionDate || new Date().toLocaleDateString()}
-              </Text>
+              <Text></Text>
             </View>
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoLeft}>
               <Text style={styles.label}>Subject Property:</Text>
-              <Text style={styles.value}>
+              <Text style={styles.label}>
                 {jobData?.streetAddress || "N/A"},{" "}
                 {jobData?.developmentName || ""}
               </Text>
             </View>
             <View style={styles.infoRight}>
-              <Text style={styles.label}>Case #:</Text>
-              <Text style={styles.value}>
-                {jobData?.fhaCaseDetailsNo || jobData?.caseNumber || "N/A"}
-              </Text>
+              <Text></Text>
             </View>
           </View>
         </View>
@@ -296,8 +329,6 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
         {sections.slice(0, sectionsPerPage).map(([label, images], index) => (
           <View key={`section-${label}-${index}`} wrap={false}>
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>{label}</Text>
-
               {images.length === 1 ? (
                 <View style={styles.imageSingle}>
                   {images[0]?.url ? (
@@ -343,6 +374,8 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                   ))}
                 </View>
               )}
+
+              <Text style={styles.sectionTitle}>{label}</Text>
             </View>
           </View>
         ))}
@@ -377,8 +410,6 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
             {pageSections.map(([label, images], index) => (
               <View key={`section-${label}-${startIndex + index}`} wrap={false}>
                 <View style={styles.sectionContainer}>
-                  <Text style={styles.sectionTitle}>{label}</Text>
-
                   {images.length === 1 ? (
                     <View style={styles.imageSingle}>
                       {images[0]?.url ? (
@@ -424,6 +455,8 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                       ))}
                     </View>
                   )}
+
+                  <Text style={styles.sectionTitle}>{label}</Text>
                 </View>
               </View>
             ))}
