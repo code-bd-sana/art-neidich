@@ -6,14 +6,14 @@ import { updateReportStatus } from "@/action/report.action";
 
 export default function EmailLog({ jobData }) {
   console.log("EmailLog - jobData:", jobData);
-  
-  // Get report ID from jobData 
+
+  // Get report ID from jobData
   const reportId = jobData?.reportId;
-  
+
   console.log("reportId from jobData:", reportId);
   console.log("hasReport:", jobData?.hasReport);
   console.log("reportStatusLabel:", jobData?.reportStatusLabel);
-  
+
   // Get initial status from reportStatusLabel
   const getInitialStatus = () => {
     // First check reportStatusLabel
@@ -21,12 +21,12 @@ export default function EmailLog({ jobData }) {
       console.log("Using reportStatusLabel:", jobData.reportStatusLabel);
       return jobData.reportStatusLabel;
     }
-    
+
     // Fallback: if hasReport is false, it's "In Progress"
     if (jobData?.hasReport === false) {
       return "In Progress";
     }
-    
+
     return "Submitted";
   };
 
@@ -69,7 +69,7 @@ export default function EmailLog({ jobData }) {
   // Status color based on display label
   const getStatusColor = (statusLabel) => {
     const status = statusLabel?.toLowerCase() || "";
-    
+
     if (status.includes("progress")) {
       return "bg-blue-50 text-blue-700 border border-blue-200";
     } else if (status.includes("complete")) {
@@ -86,22 +86,22 @@ export default function EmailLog({ jobData }) {
   // Convert display label to API status value
   const getApiStatusValue = (displayLabel) => {
     const label = displayLabel?.toLowerCase() || "";
-    
+
     if (label.includes("progress")) return "in_progress";
     if (label.includes("complete")) return "completed";
     if (label.includes("reject")) return "rejected";
     if (label.includes("submit")) return "submitted";
-    
+
     return "submitted";
   };
 
   // Convert API status value to display label
   const getDisplayLabel = (apiStatus) => {
     const statusMap = {
-      "submitted": "Submitted",
-      "in_progress": "In Progress", 
-      "completed": "Completed",
-      "rejected": "Rejected",
+      submitted: "Submitted",
+      in_progress: "In Progress",
+      completed: "Completed",
+      rejected: "Rejected",
     };
     return statusMap[apiStatus] || apiStatus || "Submitted";
   };
@@ -119,17 +119,17 @@ export default function EmailLog({ jobData }) {
     if (jobData?.hasReport === false) {
       return false;
     }
-    
+
     // Need a report ID to update
     if (!reportId) {
       return false;
     }
-    
+
     // If current status is "In Progress", cannot change it
     if (currentStatus?.toLowerCase().includes("progress")) {
       return false;
     }
-    
+
     return true;
   };
 
@@ -140,7 +140,7 @@ export default function EmailLog({ jobData }) {
     console.log("Display label:", getDisplayLabel(newStatus));
     console.log("reportId:", reportId);
     console.log("hasReport:", jobData?.hasReport);
-    
+
     // Check if status can be changed
     if (!canChangeStatus()) {
       if (jobData?.hasReport === false) {
@@ -152,7 +152,7 @@ export default function EmailLog({ jobData }) {
       }
       return;
     }
-    
+
     // Cannot change back to "in_progress"
     if (newStatus === "in_progress") {
       setError("Cannot change back to 'In Progress'");
@@ -161,16 +161,16 @@ export default function EmailLog({ jobData }) {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log("Calling updateReportStatus with:", {
         reportId: reportId,
-        status: newStatus
+        status: newStatus,
       });
-      
+
       const result = await updateReportStatus(reportId, newStatus);
       console.log("API Response:", result);
-      
+
       if (result?.success) {
         // Update local state with the display label
         setCurrentStatus(getDisplayLabel(newStatus));
@@ -191,81 +191,85 @@ export default function EmailLog({ jobData }) {
   const canChange = canChangeStatus();
 
   return (
-    <div className="bg-gray-50">
-      <div className="bg-white rounded-lg shadow-sm mx-4 md:mx-0">
+    <div className='bg-gray-50'>
+      <div className='bg-white rounded-lg shadow-sm mx-4 md:mx-0'>
         {/* Content */}
-        <div className="p-4 md:p-6 lg:p-8">
+        <div className='p-4 md:p-6 lg:p-8'>
           {/* Mobile Header */}
-          <div className="md:hidden mb-6">
-            <h3 className="text-lg font-medium text-gray-900">Email Communication</h3>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className='md:hidden mb-6'>
+            <h3 className='text-lg font-medium text-gray-900'>
+              Email Communication
+            </h3>
+            <p className='text-sm text-gray-500 mt-1'>
               Communication logs for this inspection
             </p>
           </div>
 
           {/* Desktop Header */}
-          <div className="hidden md:block mb-6">
-            <h3 className="text-lg font-medium text-gray-900">
+          <div className='hidden md:block mb-6'>
+            <h3 className='text-lg font-medium text-gray-900'>
               Email Communication
             </h3>
           </div>
 
-          <div className="space-y-0">
-            <DetailRow label="Timestamp" value={formatTimestamp()} />
+          <div className='space-y-0'>
+            <DetailRow label='Timestamp' value={formatTimestamp()} />
             <DetailRow
-              label="Status"
+              label='Status'
               value={
-                <div className="relative inline-block">
-                  <div className="inline-flex flex-col gap-1">
-                    <div className="relative">
+                <div className='relative inline-block'>
+                  <div className='inline-flex flex-col gap-1'>
+                    <div className='relative'>
                       {/* Status display - only show dropdown if can change */}
                       {canChange ? (
                         <button
-                          type="button"
-                          onClick={() => !isLoading && setIsDropdownOpen(!isDropdownOpen)}
+                          type='button'
+                          onClick={() =>
+                            !isLoading && setIsDropdownOpen(!isDropdownOpen)
+                          }
                           disabled={isLoading}
                           className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${getStatusColor(
-                            currentStatus
-                          )} ${isLoading ? "opacity-70 cursor-not-allowed" : "hover:opacity-90 cursor-pointer"}`}
-                        >
+                            currentStatus,
+                          )} ${isLoading ? "opacity-70 cursor-not-allowed" : "hover:opacity-90 cursor-pointer"}`}>
                           <span>{currentStatus}</span>
                           {!isLoading && (
-                            <ChevronDown 
-                              size={14} 
+                            <ChevronDown
+                              size={14}
                               className={`transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
                             />
                           )}
-                          {isLoading && (
-                            <span className="ml-1">...</span>
-                          )}
+                          {isLoading && <span className='ml-1'>...</span>}
                         </button>
                       ) : (
                         // Static display when cannot change
-                        <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${getStatusColor(currentStatus)}`}>
+                        <span
+                          className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-medium ${getStatusColor(currentStatus)}`}>
                           <span>{currentStatus}</span>
                         </span>
                       )}
-                      
+
                       {/* Dropdown menu - only show if can change */}
                       {isDropdownOpen && !isLoading && canChange && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-10"
+                          <div
+                            className='fixed inset-0 z-10'
                             onClick={() => setIsDropdownOpen(false)}
                           />
-                          <div className="absolute z-20 mt-1 w-48 rounded-md bg-white shadow-lg border border-gray-200">
-                            <div className="py-1">
+                          <div className='absolute z-20 mt-1 w-48 rounded-md bg-white shadow-lg border border-gray-200'>
+                            <div className='py-1'>
                               {statusOptions.map((option) => (
                                 <button
                                   key={option.value}
-                                  type="button"
-                                  onClick={() => handleStatusChange(option.value)}
+                                  type='button'
+                                  onClick={() =>
+                                    handleStatusChange(option.value)
+                                  }
                                   className={`w-full text-left px-4 py-2 text-sm ${
-                                    getApiStatusValue(currentStatus) === option.value
+                                    getApiStatusValue(currentStatus) ===
+                                    option.value
                                       ? "bg-gray-100 text-gray-900 font-medium"
                                       : "text-gray-700 hover:bg-gray-50"
-                                  }`}
-                                >
+                                  }`}>
                                   {option.label}
                                 </button>
                               ))}
@@ -274,34 +278,33 @@ export default function EmailLog({ jobData }) {
                         </>
                       )}
                     </div>
-                    
+
                     {/* Error/Success messages */}
                     {error && (
-                      <span className={`text-xs ${error.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                      <span
+                        className={`text-xs ${error.includes("✓") ? "text-green-600" : "text-red-600"}`}>
                         {error}
                       </span>
                     )}
-                    
+
                     {/* Status information */}
-                    <div className="text-xs text-gray-400">
-                      {jobData?.hasReport === false ? (
-                        "Report not submitted yet"
-                      ) : currentStatus?.toLowerCase().includes("progress") ? (
-                        "Report in progress - cannot change status"
-                      ) : !reportId ? (
-                        "No report ID found"
-                      ) : (
-                        "Click to change status"
-                      )}
+                    <div className='text-xs text-gray-400'>
+                      {jobData?.hasReport === false
+                        ? "Report not submitted yet"
+                        : currentStatus?.toLowerCase().includes("progress")
+                          ? "Report in progress - cannot change status"
+                          : !reportId
+                            ? "No report ID found"
+                            : "Click to change status"}
                     </div>
                   </div>
                 </div>
               }
             />
-            <DetailRow label="Message ID" value={getMessageId()} />
-            <DetailRow label="Order ID" value={jobData?.orderId || "N/A"} />
+            <DetailRow label='Message ID' value={getMessageId()} />
+            <DetailRow label='Order ID' value={jobData?.orderId || "N/A"} />
             <DetailRow
-              label="FHA Case"
+              label='FHA Case'
               value={jobData?.fhaCaseDetailsNo || "N/A"}
             />
           </div>
@@ -313,12 +316,14 @@ export default function EmailLog({ jobData }) {
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-3 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-600 sm:min-w-[140px] md:min-w-40">
+    <div className='flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-3 border-b border-gray-100 last:border-0'>
+      <span className='text-sm text-gray-600 sm:min-w-[140px] md:min-w-40'>
         {label}
       </span>
-      <span className="hidden sm:inline text-sm text-gray-400">:</span>
-      <div className="text-sm text-gray-900 sm:ml-2 wrap-break-words">{value}</div>
+      <span className='hidden sm:inline text-sm text-gray-400'>:</span>
+      <div className='text-sm text-gray-900 sm:ml-2 wrap-break-words'>
+        {value}
+      </div>
     </div>
   );
 }
