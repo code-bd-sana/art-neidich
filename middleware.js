@@ -29,11 +29,7 @@ export function middleware(req) {
   const now = Math.floor(Date.now() / 1000);
 
   // Allow service worker and a few static root files to bypass middleware
-  if (
-    pathname === "/sw.js" ||
-    pathname === "/manifest.json" ||
-    pathname === "/robots.txt"
-  ) {
+  if (pathname === "/manifest.json" || pathname === "/robots.txt") {
     return NextResponse.next();
   }
 
