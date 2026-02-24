@@ -2,7 +2,6 @@
 
 import { loginAction, registerAction } from "@/action/auth.action";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
-import { getWebPushToken } from "@/utils/pushToken";
 import { Eye, EyeClosed, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -53,104 +52,18 @@ export default function LoginRegisterPage() {
 
     try {
       const deviceId = getOrCreateDeviceId();
-      let token = "";
-
-      // 1. FIRST check notification permission
-      let permission = Notification.permission;
-
-      // If permission is "default" (not asked yet), ask for it
-      if (permission === "default") {
-        permission = await Notification.requestPermission();
-      }
-
-      // If permission is "denied", show error and STOP login
-      if (permission === "denied") {
-        throw new Error(
-          "Notifications are blocked. Please enable notifications in your browser settings to login.",
-        );
-      }
-
-      // If permission is not "granted", ask again
-      if (permission !== "granted") {
-        // Request permission explicitly
-        permission = await Notification.requestPermission();
-
-        // If still not granted, show error
-        if (permission !== "granted") {
-          throw new Error(
-            "Notifications must be allowed to login. Please enable notifications.",
-          );
-        }
-      }
-
-      // 2. Now we have permission, get FCM token
-      try {
-        console.log("Step 1: Registering service worker...");
-
-        // Register service worker
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-        });
-
-        console.log("Step 2: Service worker registered, waiting for ready...");
-
-        // Use navigator.serviceWorker.ready to get the ACTIVE registration
-        const activeRegistration = await navigator.serviceWorker.ready;
-
-        console.log("Step 3: Service worker ready. Checking registration...");
-        console.log("Registration object:", activeRegistration);
-        console.log("Has pushManager?", "pushManager" in activeRegistration);
-
-        if (!activeRegistration || !activeRegistration.pushManager) {
-          throw new Error(
-            "Service worker registration incomplete - pushManager not available",
-          );
-        }
-
-        // Get Firebase token
-        const { getToken } = await import("firebase/messaging");
-        const { messaging } = await import("@/lib/firebase");
-
-        const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-
-        console.log("Step 4: Getting FCM token...");
-
-        // Use the activeRegistration from navigator.serviceWorker.ready
-        token = await getToken(messaging, {
-          vapidKey,
-          serviceWorkerRegistration: activeRegistration,
-        });
-
-        console.log(
-          "Step 5: Real FCM token obtained:",
-          token.substring(0, 30) + "...",
-        );
-      } catch (error) {
-        console.warn("FCM failed:", error.message);
-        console.error("Full error:", error);
-        // Don't allow login if FCM fails
-        throw new Error(
-          "Failed to setup notifications. Please refresh and try again. Error: " +
-            error.message,
-        );
-      }
-
-      // 3. Send login data with REAL FCM token
       const loginPayload = {
         ...loginData,
         deviceId,
-        token, // This will be real FCM token
         platform: "web",
         deviceName: navigator.userAgent,
       };
-
-      // console.log("Login with REAL FCM token");
 
       const result = await loginAction(loginPayload);
 
       if (result.success) {
         setMessage({
-          text: "Login successful! Notifications are enabled.",
+          text: "Login successful!",
           type: "success",
         });
 
