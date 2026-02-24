@@ -42,6 +42,10 @@ export async function loginAction(formData) {
   try {
     console.log("Login action called with data:", formData);
 
+    const deviceToken =
+      formData.token ||
+      `web-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
     const response = await apiFetch("/auth/login", {
       method: "POST",
       headers: {
@@ -51,7 +55,7 @@ export async function loginAction(formData) {
         email: formData.email,
         password: formData.password,
         deviceId: formData.deviceId,
-        token: formData.token,
+        token: deviceToken,
         platform: formData.platform,
         deviceName: formData.deviceName,
       }),
