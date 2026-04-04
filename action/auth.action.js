@@ -64,7 +64,11 @@ export async function loginAction(formData) {
     const token = response?.token || response?.data?.token;
 
     if (!token) {
-      throw new Error("JWT token not returned from API");
+      return {
+        success: false,
+        code: 500,
+        message: "JWT token not returned from API",
+      };
     }
 
     const cookieStore = await cookies();
@@ -80,7 +84,12 @@ export async function loginAction(formData) {
     return response;
   } catch (error) {
     console.error("Login action error:", error);
-    throw error;
+    return {
+      success: false,
+      code: error?.status || error?.code || 500,
+      message: error?.message || "Login failed",
+      errors: Array.isArray(error?.errors) ? error.errors : [],
+    };
   }
 }
 
