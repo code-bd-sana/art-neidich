@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown, Loader2, CheckCircle, Search } from "lucide-react";
 import { postJob } from "@/action/job.action";
 import { getUsers } from "@/action/user.action";
+import { useRouter } from "next/navigation";
 
 export default function ManageJobs() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -280,6 +282,9 @@ export default function ManageJobs() {
         });
         setSelectedInspector(null);
         setSelectedFeeType("Select");
+
+        router.push("/dashboard");
+        router.refresh();
 
         setTimeout(() => {
           setSuccess(false);
