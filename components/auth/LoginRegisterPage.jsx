@@ -10,6 +10,7 @@ export default function LoginRegisterPage() {
   const [activeTab, setActiveTab] = useState("login");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [messageDetails, setMessageDetails] = useState([]);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
@@ -49,6 +50,7 @@ export default function LoginRegisterPage() {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", type: "" });
+    setMessageDetails([]);
 
     try {
       const deviceId = getOrCreateDeviceId();
@@ -77,6 +79,7 @@ export default function LoginRegisterPage() {
           window.location.href = "/dashboard";
         }, 1000);
       } else {
+        setMessageDetails(Array.isArray(result?.errors) ? result.errors : []);
         setMessage({ text: result.message || "Login failed", type: "error" });
       }
     } catch (error) {
@@ -93,6 +96,7 @@ export default function LoginRegisterPage() {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", type: "" });
+    setMessageDetails([]);
 
     // Validate password length
     if (registerData.password.length < 6) {
@@ -133,6 +137,7 @@ export default function LoginRegisterPage() {
       } else {
         const errorMessage =
           result.message || result.data?.message || "Registration failed";
+        setMessageDetails(Array.isArray(result?.errors) ? result.errors : []);
         setMessage({ text: errorMessage, type: "error" });
       }
     } catch (error) {
@@ -190,6 +195,17 @@ export default function LoginRegisterPage() {
                   : "bg-red-50 text-red-700"
               }`}>
               {message.text}
+              {messageDetails.length > 0 && (
+                <ul className='mt-2 list-disc pl-5 text-sm'>
+                  {messageDetails.map((item, idx) => (
+                    <li key={`${item.field || "error"}-${idx}`}>
+                      {item.field
+                        ? `${item.field}: ${item.message}`
+                        : item.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

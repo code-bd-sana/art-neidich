@@ -9,6 +9,7 @@ export default function ManageJobs() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [errorList, setErrorList] = useState([]);
 
   // Inspector dropdown state
   const [inspectors, setInspectors] = useState([]);
@@ -30,7 +31,7 @@ export default function ManageJobs() {
     dateCreated: new Date().toLocaleDateString("en-GB"),
     dateDue: "",
     specialNotesForInspector: "",
-    formType: "92051 - FHA Inspection",
+    formType: "92015 - FHA Inspection",
     agreedFee: "",
     orderId: "",
     development: "Histrung Heights",
@@ -184,11 +185,13 @@ export default function ManageJobs() {
       return false;
     }
 
+    const agreedFeeValue = Number(formData.agreedFee);
     if (
-      isNaN(parseFloat(formData.agreedFee)) ||
-      parseFloat(formData.agreedFee) <= 0
+      Number.isNaN(agreedFeeValue) ||
+      agreedFeeValue <= 0 ||
+      !Number.isInteger(agreedFeeValue)
     ) {
-      setError("Agreed fee must be a valid number greater than 0");
+      setError("Agreed fee must be a whole number greater than 0");
       return false;
     }
 
@@ -210,6 +213,7 @@ export default function ManageJobs() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setErrorList([]);
 
     if (!validateForm()) {
       return;
@@ -242,8 +246,8 @@ export default function ManageJobs() {
         siteContactEmail: formData.siteContactEmail,
         dueDate: formatDateForAPI(formData.dateDue),
         specialNotesForInspector: formData.specialNotesForInspector,
-        formType: "92051 - FHA Inspection",
-        agreedFee: parseFloat(formData.agreedFee),
+        formType: formData.formType,
+        agreedFee: Number(formData.agreedFee),
         orderId: formData.orderId,
         developmentName: formData.development,
         specialNoteForApOrAr: formData.specialNoteForApOrAr,
@@ -267,7 +271,7 @@ export default function ManageJobs() {
           dateCreated: new Date().toLocaleDateString("en-GB"),
           dateDue: "",
           specialNotesForInspector: "",
-          formType: "92051 - FHA Inspection",
+          formType: "92015 - FHA Inspection",
           agreedFee: "",
           orderId: "",
           development: "Histrung Heights",
@@ -281,11 +285,17 @@ export default function ManageJobs() {
           setSuccess(false);
         }, 5000);
       } else {
+        const validationErrors = Array.isArray(response?.errors)
+          ? response.errors
+          : [];
         setError(response.message || "Failed to create job");
+        setErrorList(validationErrors);
       }
     } catch (err) {
       console.error("Error creating job:", err);
+      const validationErrors = Array.isArray(err?.errors) ? err.errors : [];
       setError(err.message || "An error occurred while creating the job");
+      setErrorList(validationErrors);
     } finally {
       setLoading(false);
     }
@@ -317,8 +327,22 @@ export default function ManageJobs() {
         {error && (
           <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
             <p className='font-medium'>Error: {error}</p>
+            {errorList.length > 0 && (
+              <ul className='mt-2 list-disc pl-5 text-sm'>
+                {errorList.map((item, idx) => (
+                  <li key={`${item.field || "error"}-${idx}`}>
+                    {item.field
+                      ? `${item.field}: ${item.message}`
+                      : item.message}
+                  </li>
+                ))}
+              </ul>
+            )}
             <button
-              onClick={() => setError(null)}
+              onClick={() => {
+                setError(null);
+                setErrorList([]);
+              }}
               className='text-sm text-red-600 hover:text-red-800 underline mt-1'>
               Dismiss
             </button>
@@ -607,8 +631,8 @@ export default function ManageJobs() {
                   onChange={handleChange}
                   required
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white'>
-                  <option value='92051 - FHA Inspection'>
-                    92051 - FHA Inspection
+                  <option value='92015 - FHA Inspection'>
+                    92015 - FHA Inspection
                   </option>
                   {/* <option value='RCI Residential Building Code Inspection'>
                     RCI Residential Building Code Inspection
@@ -633,7 +657,7 @@ export default function ManageJobs() {
                     placeholder='e.g., 50'
                     required
                     min='0'
-                    step='0.01'
+                    step='1'
                     className='w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400'
                   />
                 </div>
