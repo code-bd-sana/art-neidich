@@ -273,7 +273,7 @@ export default function ManageJobs() {
           dateCreated: new Date().toLocaleDateString("en-GB"),
           dateDue: "",
           specialNotesForInspector: "",
-          formType: "92015 - FHA Inspection",
+          formType: "92051 - FHA Inspection",
           agreedFee: "",
           orderId: "",
           development: "Histrung Heights",
