@@ -33,7 +33,7 @@ export default function ManageJobs() {
     dateCreated: new Date().toLocaleDateString("en-GB"),
     dateDue: "",
     specialNotesForInspector: "",
-    formType: "92015 - FHA Inspection",
+    formType: "92051 - FHA Inspection",
     agreedFee: "",
     orderId: "",
     development: "Histrung Heights",
@@ -636,8 +636,8 @@ export default function ManageJobs() {
                   onChange={handleChange}
                   required
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white'>
-                  <option value='92015 - FHA Inspection'>
-                    92015 - FHA Inspection
+                  <option value='92051 - FHA Inspection'>
+                    92051 - FHA Inspection
                   </option>
                   {/* <option value='RCI Residential Building Code Inspection'>
                     RCI Residential Building Code Inspection
