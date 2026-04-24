@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getReportById } from "@/action/report.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 import Image from "next/image";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -72,14 +73,16 @@ export default function Photos({ jobData }) {
             console.log("Transformed photo data:", transformedPhotos);
             setPhotoData(transformedPhotos);
           } else {
-            throw new Error(data.message || "Failed to fetch report data");
+            throw new Error(
+              extractErrorMessage(data, "Failed to fetch report data."),
+            );
           }
         } else {
           setPhotoData([]);
         }
       } catch (err) {
         console.error("Error fetching report photos:", err);
-        setError(err.message || "Failed to load photos");
+        setError(extractErrorMessage(err, "Failed to load photos."));
       } finally {
         setLoading(false);
       }
@@ -129,7 +132,12 @@ export default function Photos({ jobData }) {
     } catch (err) {
       console.error("Single image download error:", err);
       window.open(url, "_blank");
-      alert("Download failed. Image opened in new tab instead.");
+      alert(
+        extractErrorMessage(
+          err,
+          "Download failed. Image opened in new tab instead.",
+        ),
+      );
     } finally {
       setDownloadingImage(null);
     }
@@ -187,7 +195,7 @@ export default function Photos({ jobData }) {
       saveAs(content, `${item.location.replace(/\s+/g, "_")}_photos.zip`);
     } catch (error) {
       console.error("ZIP creation error:", error);
-      alert("Failed to create ZIP file");
+      alert(extractErrorMessage(error, "Failed to create ZIP file."));
     } finally {
       setDownloadingZip(null);
     }
@@ -236,7 +244,7 @@ export default function Photos({ jobData }) {
       await generateReportPdf(imagesByLabel, jobData);
     } catch (error) {
       console.error("PDF generation error:", error);
-      alert("Failed to generate PDF report");
+      alert(extractErrorMessage(error, "Failed to generate PDF report."));
     } finally {
       setDownloadingReport(false);
     }

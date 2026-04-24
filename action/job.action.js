@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/fetcher";
+import { normalizeActionError } from "@/lib/error-utils";
 import { cookies } from "next/headers";
 
 /* ======================
@@ -63,12 +64,7 @@ export async function postJob(jobData) {
     return resp;
   } catch (error) {
     console.error("Post job error:", error);
-    return {
-      success: false,
-      code: error?.status || error?.code || 500,
-      message: error?.message || "An error occurred while creating the job",
-      errors: Array.isArray(error?.errors) ? error.errors : [],
-    };
+    return normalizeActionError(error, "Failed to create the job.");
   }
 }
 /* ======================

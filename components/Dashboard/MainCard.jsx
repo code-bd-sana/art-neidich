@@ -15,6 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 import { getJobs } from "@/action/job.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 const MainCard = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +25,7 @@ const MainCard = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showFilter, setShowFilter] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [expandedCard, setExpandedCard] = useState(null);
 
@@ -51,6 +53,7 @@ const MainCard = () => {
   const fetchInspections = useCallback(
     async (page = 1, limit = 10, search = "", status = "all") => {
       setLoading(true);
+      setError("");
       try {
         const data = await getJobs(page, limit, search, status);
 
@@ -72,9 +75,12 @@ const MainCard = () => {
           setInspections(transformedData);
           setTotalPages(data.metaData?.totalPage || 1);
           setItemsPerPage(data.metaData?.limit || 10);
+        } else {
+          setError(extractErrorMessage(data, "Failed to load inspections."));
         }
       } catch (error) {
         console.error("Error fetching inspections:", error);
+        setError(extractErrorMessage(error, "Failed to load inspections."));
       } finally {
         setLoading(false);
       }
@@ -239,6 +245,12 @@ const MainCard = () => {
         <div className='flex items-center justify-between mb-4'>
           <h1 className='text-2xl font-bold text-gray-800'>Inspections</h1>
         </div>
+
+        {error && (
+          <div className='mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+            {error}
+          </div>
+        )}
 
         {/* Search and Filter Row - Side by side on Mobile */}
         <div className='flex items-center gap-3 mb-4'>

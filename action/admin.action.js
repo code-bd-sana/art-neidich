@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/fetcher";
+import { extractErrorMessage } from "@/lib/error-utils";
 import { cookies } from "next/headers";
 
 /* ======================
@@ -29,6 +30,8 @@ export async function getAdminOverviewAction() {
     return response?.data || response; // return the data of the API
   } catch (error) {
     console.error("Get admin overview error:", error);
-    throw new Error(error.message || "Failed to load admin overview");
+    throw new Error(
+      extractErrorMessage(error, "Failed to load admin overview."),
+    );
   }
 }

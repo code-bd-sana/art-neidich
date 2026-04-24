@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { forgotPasswordAction } from "@/action/auth.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 import { useRouter } from "next/navigation";
 
 export default function ForgotPassword() {
@@ -31,7 +32,12 @@ export default function ForgotPassword() {
         router.push("/");
       }, 5000);
     } catch (err) {
-      setError(err.message || "Failed to send reset link. Please try again.");
+      setError(
+        extractErrorMessage(
+          err,
+          "Failed to send reset link. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
