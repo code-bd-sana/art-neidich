@@ -19,6 +19,8 @@ export default function ArchiveReportsPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [restoringIds, setRestoringIds] = useState([]); // Track which reports are being restored
+  const [deletingIds, setDeletingIds] = useState([]); // Track which reports are being deleted
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalReports, setTotalReports] = useState(0);
@@ -77,9 +79,13 @@ export default function ArchiveReportsPage() {
   const handleRestore = async (ids) => {
     if (!ids.length) return;
     try {
+      // Set restoring state for these IDs
+      setRestoringIds(ids);
       setActionLoading(true);
       setError("");
+
       const data = await restoreArchivedReports(ids);
+
       if (data.success) {
         setSuccess(`${ids.length} report(s) restored successfully.`);
         setSelectedIds([]);
@@ -92,6 +98,7 @@ export default function ArchiveReportsPage() {
       setError(extractErrorMessage(err, "Failed to restore reports."));
     } finally {
       setActionLoading(false);
+      setRestoringIds([]);
     }
   };
 
@@ -104,10 +111,15 @@ export default function ArchiveReportsPage() {
       )
     )
       return;
+
     try {
+      // Set deleting state for these IDs
+      setDeletingIds(ids);
       setActionLoading(true);
       setError("");
+
       const data = await permanentlyDeleteArchivedReports(ids);
+
       if (data.success) {
         setSuccess(`${ids.length} report(s) permanently deleted.`);
         setSelectedIds([]);
@@ -127,12 +139,18 @@ export default function ArchiveReportsPage() {
       setError(extractErrorMessage(err, "Failed to delete reports."));
     } finally {
       setActionLoading(false);
+      setDeletingIds([]);
     }
   };
 
   const allSelected =
     reports.length > 0 && selectedIds.length === reports.length;
   const someSelected = selectedIds.length > 0;
+
+  // Check if a specific report is loading (being restored or deleted)
+  const isReportLoading = (reportId) => {
+    return restoringIds.includes(reportId) || deletingIds.includes(reportId);
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -155,13 +173,23 @@ export default function ArchiveReportsPage() {
               onClick={() => handleRestore(selectedIds)}
               disabled={actionLoading}
               className='flex items-center gap-1.5 px-3 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors'>
-              <RotateCcw size={15} /> Restore
+              {actionLoading && restoringIds.length > 0 ? (
+                <Loader2 size={15} className='animate-spin' />
+              ) : (
+                <RotateCcw size={15} />
+              )}
+              Restore
             </button>
             <button
               onClick={() => handlePermanentDelete(selectedIds)}
               disabled={actionLoading}
               className='flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors'>
-              <Trash2 size={15} /> Delete
+              {actionLoading && deletingIds.length > 0 ? (
+                <Loader2 size={15} className='animate-spin' />
+              ) : (
+                <Trash2 size={15} />
+              )}
+              Delete
             </button>
           </div>
         )}
@@ -175,7 +203,7 @@ export default function ArchiveReportsPage() {
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset to page 1 on search
+            setCurrentPage(1);
           }}
           className='w-full md:w-96 pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
         />
@@ -253,7 +281,7 @@ export default function ArchiveReportsPage() {
                 report={report}
                 isExpanded={expandedCard === report._id}
                 isSelected={selectedIds.includes(report._id)}
-                actionLoading={actionLoading}
+                actionLoading={isReportLoading(report._id)}
                 onToggleExpand={() =>
                   setExpandedCard(
                     expandedCard === report._id ? null : report._id,
@@ -273,6 +301,8 @@ export default function ArchiveReportsPage() {
             selectedIds={selectedIds}
             allSelected={allSelected}
             actionLoading={actionLoading}
+            restoringIds={restoringIds}
+            deletingIds={deletingIds}
             onToggleSelectAll={toggleSelectAll}
             onToggleSelect={toggleSelect}
             onRestore={handleRestore}
