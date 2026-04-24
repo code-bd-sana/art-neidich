@@ -33,7 +33,7 @@ function InfoRow({ icon: Icon, label, value }) {
       </div>
       <div className='min-w-0'>
         <p className='text-xs text-gray-400 mb-0.5'>{label}</p>
-        <p className='text-sm text-gray-800 font-medium break-words'>
+        <p className='text-sm text-gray-800 font-medium wrap-break-words'>
           {value || "—"}
         </p>
       </div>
