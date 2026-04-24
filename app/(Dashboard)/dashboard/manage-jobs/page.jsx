@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown, Loader2, CheckCircle, Search } from "lucide-react";
 import { postJob } from "@/action/job.action";
+import { extractErrorList, extractErrorMessage } from "@/lib/error-utils";
 import { getUsers } from "@/action/user.action";
 import { useRouter } from "next/navigation";
 
@@ -95,7 +96,7 @@ export default function ManageJobs() {
         }
       } catch (err) {
         console.error("Error fetching inspectors:", err);
-        setError("Could not load inspectors list");
+        setError(extractErrorMessage(err, "Could not load inspectors list."));
       } finally {
         setLoadingInspectors(false);
       }
@@ -290,16 +291,14 @@ export default function ManageJobs() {
           setSuccess(false);
         }, 5000);
       } else {
-        const validationErrors = Array.isArray(response?.errors)
-          ? response.errors
-          : [];
-        setError(response.message || "Failed to create job");
+        const validationErrors = extractErrorList(response);
+        setError(extractErrorMessage(response, "Failed to create job."));
         setErrorList(validationErrors);
       }
     } catch (err) {
       console.error("Error creating job:", err);
-      const validationErrors = Array.isArray(err?.errors) ? err.errors : [];
-      setError(err.message || "An error occurred while creating the job");
+      const validationErrors = extractErrorList(err);
+      setError(extractErrorMessage(err, "Failed to create job."));
       setErrorList(validationErrors);
     } finally {
       setLoading(false);

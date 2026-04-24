@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
 import { updateReportStatus } from "@/action/report.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 export default function EmailLog({ jobData }) {
   console.log("EmailLog - jobData:", jobData);
@@ -15,7 +16,7 @@ export default function EmailLog({ jobData }) {
   console.log("reportStatusLabel:", jobData?.reportStatusLabel);
 
   // Get initial status from reportStatusLabel
-  const getInitialStatus = () => {
+  const getInitialStatus = useCallback(() => {
     // First check reportStatusLabel
     if (jobData?.reportStatusLabel) {
       console.log("Using reportStatusLabel:", jobData.reportStatusLabel);
@@ -28,7 +29,7 @@ export default function EmailLog({ jobData }) {
     }
 
     return "Submitted";
-  };
+  }, [jobData]);
 
   const [currentStatus, setCurrentStatus] = useState(getInitialStatus());
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -40,7 +41,7 @@ export default function EmailLog({ jobData }) {
     const newStatus = getInitialStatus();
     console.log("Setting currentStatus to:", newStatus);
     setCurrentStatus(newStatus);
-  }, [jobData]);
+  }, [getInitialStatus]);
 
   // Format timestamp from jobData
   const formatTimestamp = () => {
@@ -177,11 +178,11 @@ export default function EmailLog({ jobData }) {
         setError("✓ Status updated successfully");
         setTimeout(() => setError(null), 2000);
       } else {
-        setError(result?.message || "Failed to update status");
+        setError(extractErrorMessage(result, "Failed to update status."));
       }
     } catch (err) {
       console.error("Error updating status:", err);
-      setError(err.message || "Failed to update status");
+      setError(extractErrorMessage(err, "Failed to update status."));
     } finally {
       setIsLoading(false);
       setIsDropdownOpen(false);

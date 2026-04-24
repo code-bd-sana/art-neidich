@@ -1,6 +1,7 @@
 "use client";
 
 import { loginAction, registerAction } from "@/action/auth.action";
+import { extractErrorList, extractErrorMessage } from "@/lib/error-utils";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { Eye, EyeClosed, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -79,12 +80,18 @@ export default function LoginRegisterPage() {
           window.location.href = "/dashboard";
         }, 1000);
       } else {
-        setMessageDetails(Array.isArray(result?.errors) ? result.errors : []);
-        setMessage({ text: result.message || "Login failed", type: "error" });
+        setMessageDetails(extractErrorList(result));
+        setMessage({
+          text: extractErrorMessage(
+            result,
+            "Login failed. Please check your credentials.",
+          ),
+          type: "error",
+        });
       }
     } catch (error) {
       setMessage({
-        text: error.message,
+        text: extractErrorMessage(error, "Login failed. Please try again."),
         type: "error",
       });
     } finally {
@@ -135,15 +142,17 @@ export default function LoginRegisterPage() {
           });
         }, 2000);
       } else {
-        const errorMessage =
-          result.message || result.data?.message || "Registration failed";
-        setMessageDetails(Array.isArray(result?.errors) ? result.errors : []);
+        const errorMessage = extractErrorMessage(
+          result,
+          "Registration failed. Please try again.",
+        );
+        setMessageDetails(extractErrorList(result));
         setMessage({ text: errorMessage, type: "error" });
       }
     } catch (error) {
       console.error("Registration error:", error);
       setMessage({
-        text: error.message || "Network error. Please try again.",
+        text: extractErrorMessage(error, "Network error. Please try again."),
         type: "error",
       });
     } finally {

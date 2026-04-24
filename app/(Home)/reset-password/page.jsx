@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { resetPasswordAction } from "@/action/auth.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 import { Suspense } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -71,8 +72,10 @@ function ResetPasswordContent() {
       }, 3000);
     } catch (err) {
       setError(
-        err.message ||
-          "Failed to reset password. The link may have expired or is invalid.",
+        extractErrorMessage(
+          err,
+          "Failed to reset password. The link may have expired or be invalid.",
+        ),
       );
     } finally {
       setLoading(false);

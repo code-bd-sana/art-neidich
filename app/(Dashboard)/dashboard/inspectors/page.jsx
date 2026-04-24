@@ -13,6 +13,7 @@ import {
   X,
   Filter,
 } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 import { getUsers } from "@/action/user.action";
 import { updateUserStatus } from "@/action/user.action";
 
@@ -44,11 +45,11 @@ export default function InspectorPage() {
       if (data.success) {
         setAllInspectors(data.data || []);
       } else {
-        setError(data.message || "Failed to load inspectors");
+        setError(extractErrorMessage(data, "Failed to load inspectors."));
       }
     } catch (err) {
       console.error("Error fetching inspectors:", err);
-      setError("Could not load inspectors");
+      setError(extractErrorMessage(err, "Could not load inspectors."));
     } finally {
       setLoading(false);
     }
@@ -101,7 +102,7 @@ export default function InspectorPage() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchAllInspectors]);
 
   // Initial load
   useEffect(() => {
@@ -122,8 +123,8 @@ export default function InspectorPage() {
           prev.map((inspector) =>
             inspector._id === inspectorId
               ? { ...inspector, isApproved: true, isSuspended: false }
-              : inspector
-          )
+              : inspector,
+          ),
         );
 
         // Show success message
@@ -136,11 +137,13 @@ export default function InspectorPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to approve inspector");
+        setActionError(
+          extractErrorMessage(response, "Failed to approve inspector."),
+        );
       }
     } catch (err) {
       console.error("Error approving inspector:", err);
-      setActionError("Failed to approve inspector");
+      setActionError(extractErrorMessage(err, "Failed to approve inspector."));
     } finally {
       setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
     }
@@ -159,8 +162,8 @@ export default function InspectorPage() {
           prev.map((inspector) =>
             inspector._id === inspectorId
               ? { ...inspector, isSuspended: true }
-              : inspector
-          )
+              : inspector,
+          ),
         );
 
         // Show success message
@@ -172,11 +175,13 @@ export default function InspectorPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to suspend inspector");
+        setActionError(
+          extractErrorMessage(response, "Failed to suspend inspector."),
+        );
       }
     } catch (err) {
       console.error("Error suspending inspector:", err);
-      setActionError("Failed to suspend inspector");
+      setActionError(extractErrorMessage(err, "Failed to suspend inspector."));
     } finally {
       setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
     }
@@ -195,13 +200,13 @@ export default function InspectorPage() {
           prev.map((inspector) =>
             inspector._id === inspectorId
               ? { ...inspector, isSuspended: false }
-              : inspector
-          )
+              : inspector,
+          ),
         );
 
         // Show success message
         setSuccessMessage(
-          `${inspectorName} has been unsuspended successfully!`
+          `${inspectorName} has been unsuspended successfully!`,
         );
         setSuccess(true);
 
@@ -210,11 +215,15 @@ export default function InspectorPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to unsuspend inspector");
+        setActionError(
+          extractErrorMessage(response, "Failed to unsuspend inspector."),
+        );
       }
     } catch (err) {
       console.error("Error unsuspending inspector:", err);
-      setActionError("Failed to unsuspend inspector");
+      setActionError(
+        extractErrorMessage(err, "Failed to unsuspend inspector."),
+      );
     } finally {
       setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
     }
@@ -225,21 +234,21 @@ export default function InspectorPage() {
       return {
         text: "Approve",
         color: "bg-teal-600 hover:bg-teal-700 text-white",
-        icon: <Check className="text-white" size={16} />,
+        icon: <Check className='text-white' size={16} />,
         onClick: () => handleApprove(inspector._id, inspector.firstName),
       };
     } else if (inspector.isSuspended) {
       return {
         text: "Unsuspend",
         color: "bg-green-600 hover:bg-green-700 text-white",
-        icon: <CheckCircle className="text-white" size={16} />,
+        icon: <CheckCircle className='text-white' size={16} />,
         onClick: () => handleUnsuspend(inspector._id, inspector.firstName),
       };
     } else {
       return {
         text: "Suspend",
         color: "bg-red-600 hover:bg-red-700 text-white",
-        icon: <Ban className="text-white" size={16} />,
+        icon: <Ban className='text-white' size={16} />,
         onClick: () => handleSuspend(inspector._id, inspector.firstName),
       };
     }
@@ -291,10 +300,10 @@ export default function InspectorPage() {
 
   if (loading && paginatedInspectors.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-8 w-8 text-teal-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading inspectors...</p>
+      <div className='min-h-screen bg-gray-50 p-4 md:p-6 flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='animate-spin h-8 w-8 text-teal-600 mx-auto mb-4' />
+          <p className='text-gray-600'>Loading inspectors...</p>
         </div>
       </div>
     );
@@ -304,26 +313,25 @@ export default function InspectorPage() {
   const hasFilters = searchTerm || filterStatus !== "all";
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className='min-h-screen bg-gray-50 p-4 md:p-6'>
       <div>
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+        <div className='mb-6'>
+          <h1 className='text-2xl md:text-3xl font-bold text-gray-800'>
             Inspector List
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className='text-gray-600 mt-1'>
             Manage all inspectors in the system
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            <p className="font-medium">Error: {error}</p>
+          <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
+            <p className='font-medium'>Error: {error}</p>
             <button
               onClick={() => setError(null)}
-              className="text-sm text-red-600 hover:text-red-800 underline mt-1"
-            >
+              className='text-sm text-red-600 hover:text-red-800 underline mt-1'>
               Dismiss
             </button>
           </div>
@@ -331,16 +339,15 @@ export default function InspectorPage() {
 
         {/* Success Message */}
         {success && (
-          <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 flex items-center gap-2">
+          <div className='mb-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 flex items-center gap-2'>
             <CheckCircle size={20} />
-            <span className="text-sm font-medium">{successMessage}</span>
+            <span className='text-sm font-medium'>{successMessage}</span>
             <button
               onClick={() => {
                 setSuccess(false);
                 setSuccessMessage("");
               }}
-              className="ml-auto text-green-600 hover:text-green-800"
-            >
+              className='ml-auto text-green-600 hover:text-green-800'>
               <X size={16} />
             </button>
           </div>
@@ -348,56 +355,53 @@ export default function InspectorPage() {
 
         {/* Action Error Message */}
         {actionError && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            <p className="font-medium">Error: {actionError}</p>
+          <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
+            <p className='font-medium'>Error: {actionError}</p>
             <button
               onClick={() => setActionError("")}
-              className="text-sm text-red-600 hover:text-red-800 underline mt-1"
-            >
+              className='text-sm text-red-600 hover:text-red-800 underline mt-1'>
               Dismiss
             </button>
           </div>
         )}
 
         {/* Search and Filter Bar - Desktop */}
-        <div className="hidden md:flex items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
+        <div className='hidden md:flex items-center gap-4 mb-6'>
+          <div className='relative flex-1 max-w-md'>
             <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
               size={20}
             />
             <input
-              type="text"
-              placeholder="Search by name, email, or user ID..."
+              type='text'
+              placeholder='Search by name, email, or user ID...'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className='w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
             />
             {searchTerm && (
               <button
                 onClick={clearSearch}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'>
                 <X size={20} />
               </button>
             )}
           </div>
 
           {/* Status Filter - Desktop */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
+          <div className='flex items-center gap-2'>
+            <span className='text-sm font-medium text-gray-700'>Status:</span>
             <select
               value={filterStatus}
               onChange={(e) => {
                 setFilterStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-            >
-              <option value="all">All Inspectors</option>
-              <option value="pending">Pending Approval</option>
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
+              className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'>
+              <option value='all'>All Inspectors</option>
+              <option value='pending'>Pending Approval</option>
+              <option value='active'>Active</option>
+              <option value='suspended'>Suspended</option>
             </select>
           </div>
 
@@ -409,69 +413,65 @@ export default function InspectorPage() {
                 setFilterStatus("all");
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
+              className='px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
               Clear Filters
             </button>
           )}
         </div>
 
         {/* Search and Filter Bar - Mobile */}
-        <div className="md:hidden space-y-3 mb-6">
-          <div className="relative">
+        <div className='md:hidden space-y-3 mb-6'>
+          <div className='relative'>
             <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400'
               size={20}
             />
             <input
-              type="text"
-              placeholder="Search inspectors..."
+              type='text'
+              placeholder='Search inspectors...'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className='w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
             />
             {searchTerm && (
               <button
                 onClick={clearSearch}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'>
                 <X size={20} />
               </button>
             )}
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className='flex items-center justify-between'>
             <button
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700"
-            >
+              className='flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700'>
               <Filter size={18} />
               Filter
               {hasFilters && (
-                <span className="ml-1 bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className='ml-1 bg-teal-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>
                   !
                 </span>
               )}
             </button>
 
-            <div className="text-sm text-gray-600">
+            <div className='text-sm text-gray-600'>
               {total} inspector{total !== 1 ? "s" : ""}
             </div>
           </div>
 
           {/* Mobile Filters Dropdown */}
           {showMobileFilters && (
-            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium text-gray-800">Filter by Status</h3>
+            <div className='bg-white border border-gray-200 rounded-lg p-4 shadow-sm'>
+              <div className='flex justify-between items-center mb-3'>
+                <h3 className='font-medium text-gray-800'>Filter by Status</h3>
                 <button
                   onClick={() => setShowMobileFilters(false)}
-                  className="text-gray-500"
-                >
+                  className='text-gray-500'>
                   <X size={20} />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className='grid grid-cols-2 gap-2'>
                 {["all", "pending", "active", "suspended"].map((status) => (
                   <button
                     key={status}
@@ -484,8 +484,7 @@ export default function InspectorPage() {
                       filterStatus === status
                         ? "bg-teal-600 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
+                    }`}>
                     {status === "all" && "All"}
                     {status === "pending" && "Pending"}
                     {status === "active" && "Active"}
@@ -501,8 +500,7 @@ export default function InspectorPage() {
                     setCurrentPage(1);
                     setShowMobileFilters(false);
                   }}
-                  className="w-full mt-4 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
+                  className='w-full mt-4 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
                   Clear All Filters
                 </button>
               )}
@@ -511,13 +509,13 @@ export default function InspectorPage() {
         </div>
 
         {/* Table Container */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className='hidden md:block overflow-x-auto'>
             {paginatedInspectors.length === 0 ? (
-              <div className="p-8 text-center">
-                <User className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                <p className="text-gray-600">
+              <div className='p-8 text-center'>
+                <User className='mx-auto h-12 w-12 text-gray-300 mb-4' />
+                <p className='text-gray-600'>
                   {hasFilters
                     ? "No inspectors found matching your criteria"
                     : "No inspectors found"}
@@ -529,34 +527,33 @@ export default function InspectorPage() {
                       setFilterStatus("all");
                       setCurrentPage(1);
                     }}
-                    className="mt-2 text-sm text-teal-600 hover:text-teal-800"
-                  >
+                    className='mt-2 text-sm text-teal-600 hover:text-teal-800'>
                     Clear filters
                   </button>
                 )}
               </div>
             ) : (
-              <table className="w-full">
-                <thead className="bg-gray-50">
+              <table className='w-full'>
+                <thead className='bg-gray-50'>
                   <tr>
-                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                    <th className='py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200'>
                       Inspector name
                     </th>
-                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                    <th className='py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200'>
                       Email
                     </th>
-                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                    <th className='py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200'>
                       User ID
                     </th>
-                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                    <th className='py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200'>
                       Status
                     </th>
-                    <th className="py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200">
+                    <th className='py-4 px-6 text-left text-sm font-semibold text-gray-700 border-b border-gray-200'>
                       Action
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className='divide-y divide-gray-200'>
                   {paginatedInspectors.map((inspector) => {
                     const action = getActionButton(inspector);
                     const isLoading = actionLoading[inspector._id];
@@ -564,62 +561,59 @@ export default function InspectorPage() {
                     return (
                       <tr
                         key={inspector._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-4 px-6">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User size={16} className="text-gray-600" />
+                        className='hover:bg-gray-50 transition-colors'>
+                        <td className='py-4 px-6'>
+                          <div className='flex items-center space-x-3'>
+                            <div className='w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center'>
+                              <User size={16} className='text-gray-600' />
                             </div>
                             <div>
-                              <span className="text-sm font-medium text-gray-800 block">
+                              <span className='text-sm font-medium text-gray-800 block'>
                                 {inspector.firstName} {inspector.lastName}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className='text-xs text-gray-500'>
                                 {!inspector.isApproved
                                   ? "Pending Approval"
                                   : inspector.isSuspended
-                                  ? "Suspended"
-                                  : "Active"}
+                                    ? "Suspended"
+                                    : "Active"}
                               </span>
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 px-6">
-                          <span className="text-sm text-gray-600">
+                        <td className='py-4 px-6'>
+                          <span className='text-sm text-gray-600'>
                             {inspector.email}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
-                          <span className="text-sm font-medium text-gray-800">
+                        <td className='py-4 px-6'>
+                          <span className='text-sm font-medium text-gray-800'>
                             {inspector.userId}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className='py-4 px-6'>
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               !inspector.isApproved
                                 ? "bg-yellow-100 text-yellow-800"
                                 : inspector.isSuspended
-                                ? "bg-red-100 text-red-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
+                            }`}>
                             {!inspector.isApproved
                               ? "Pending"
                               : inspector.isSuspended
-                              ? "Suspended"
-                              : "Active"}
+                                ? "Suspended"
+                                : "Active"}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
+                        <td className='py-4 px-6'>
                           <button
                             onClick={action.onClick}
                             disabled={isLoading}
-                            className={`px-4 py-2 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
+                            className={`px-4 py-2 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}>
                             {isLoading ? (
-                              <Loader2 className="animate-spin h-4 w-4" />
+                              <Loader2 className='animate-spin h-4 w-4' />
                             ) : (
                               <>
                                 {action.icon}
@@ -637,11 +631,11 @@ export default function InspectorPage() {
           </div>
 
           {/* Mobile Cards View */}
-          <div className="md:hidden">
+          <div className='md:hidden'>
             {paginatedInspectors.length === 0 ? (
-              <div className="p-8 text-center">
-                <User className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                <p className="text-gray-600">
+              <div className='p-8 text-center'>
+                <User className='mx-auto h-12 w-12 text-gray-300 mb-4' />
+                <p className='text-gray-600'>
                   {hasFilters
                     ? "No inspectors found matching your criteria"
                     : "No inspectors found"}
@@ -653,30 +647,29 @@ export default function InspectorPage() {
                       setFilterStatus("all");
                       setCurrentPage(1);
                     }}
-                    className="mt-2 text-sm text-teal-600 hover:text-teal-800"
-                  >
+                    className='mt-2 text-sm text-teal-600 hover:text-teal-800'>
                     Clear filters
                   </button>
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-gray-200">
+              <div className='divide-y divide-gray-200'>
                 {paginatedInspectors.map((inspector) => {
                   const action = getActionButton(inspector);
                   const isLoading = actionLoading[inspector._id];
 
                   return (
-                    <div key={inspector._id} className="p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                            <User size={18} className="text-gray-600" />
+                    <div key={inspector._id} className='p-4 hover:bg-gray-50'>
+                      <div className='flex justify-between items-start mb-3'>
+                        <div className='flex items-center space-x-3'>
+                          <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center'>
+                            <User size={18} className='text-gray-600' />
                           </div>
                           <div>
-                            <h3 className="font-medium text-gray-800">
+                            <h3 className='font-medium text-gray-800'>
                               {inspector.firstName} {inspector.lastName}
                             </h3>
-                            <p className="text-sm text-gray-600">
+                            <p className='text-sm text-gray-600'>
                               {inspector.email}
                             </p>
                           </div>
@@ -686,33 +679,32 @@ export default function InspectorPage() {
                             !inspector.isApproved
                               ? "bg-yellow-100 text-yellow-800"
                               : inspector.isSuspended
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                          }`}>
                           {!inspector.isApproved
                             ? "Pending"
                             : inspector.isSuspended
-                            ? "Suspended"
-                            : "Active"}
+                              ? "Suspended"
+                              : "Active"}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className='grid grid-cols-2 gap-4 mb-4'>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">User ID</p>
-                          <p className="text-sm font-medium text-gray-800">
+                          <p className='text-xs text-gray-500 mb-1'>User ID</p>
+                          <p className='text-sm font-medium text-gray-800'>
                             {inspector.userId}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Status</p>
-                          <p className="text-sm font-medium text-gray-800">
+                          <p className='text-xs text-gray-500 mb-1'>Status</p>
+                          <p className='text-sm font-medium text-gray-800'>
                             {!inspector.isApproved
                               ? "Pending Approval"
                               : inspector.isSuspended
-                              ? "Suspended"
-                              : "Active"}
+                                ? "Suspended"
+                                : "Active"}
                           </p>
                         </div>
                       </div>
@@ -720,10 +712,9 @@ export default function InspectorPage() {
                       <button
                         onClick={action.onClick}
                         disabled={isLoading}
-                        className={`w-full px-4 py-2 text-sm flex justify-center gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
+                        className={`w-full px-4 py-2 text-sm flex justify-center gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}>
                         {isLoading ? (
-                          <Loader2 className="animate-spin h-4 w-4" />
+                          <Loader2 className='animate-spin h-4 w-4' />
                         ) : (
                           <>
                             {action.icon}
@@ -740,37 +731,35 @@ export default function InspectorPage() {
 
           {/* Pagination */}
           {filteredInspectors.length > 0 && totalPages > 1 && (
-            <div className="border-t border-gray-200 px-4 md:px-6 py-4">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-600">
+            <div className='border-t border-gray-200 px-4 md:px-6 py-4'>
+              <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
+                <div className='text-sm text-gray-600'>
                   Showing {start} to {end} of {total} inspector
                   {total !== 1 ? "s" : ""}
                   {hasFilters && (
-                    <span className="ml-2 text-teal-600">• Filtered</span>
+                    <span className='ml-2 text-teal-600'>• Filtered</span>
                   )}
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className='flex items-center space-x-4'>
                   {/* Previous Button */}
                   <button
                     onClick={() =>
                       setCurrentPage((prev) => Math.max(1, prev - 1))
                     }
                     disabled={currentPage === 1}
-                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
+                    className='flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
                     <ChevronLeft size={16} />
-                    <span className="hidden sm:inline">Previous</span>
+                    <span className='hidden sm:inline'>Previous</span>
                   </button>
 
                   {/* Page Numbers */}
-                  <div className="flex items-center space-x-1">
+                  <div className='flex items-center space-x-1'>
                     {getPageNumbers().map((page, index) =>
                       page === "..." ? (
                         <span
                           key={`ellipsis-${index}`}
-                          className="text-gray-400 px-1"
-                        >
+                          className='text-gray-400 px-1'>
                           ...
                         </span>
                       ) : (
@@ -781,11 +770,10 @@ export default function InspectorPage() {
                             currentPage === page
                               ? "bg-teal-600 text-white font-semibold"
                               : "text-gray-600 hover:bg-gray-100"
-                          }`}
-                        >
+                          }`}>
                           {page}
                         </button>
-                      )
+                      ),
                     )}
                   </div>
 
@@ -795,9 +783,8 @@ export default function InspectorPage() {
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                     }
                     disabled={currentPage === totalPages}
-                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <span className="hidden sm:inline">Next</span>
+                    className='flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'>
+                    <span className='hidden sm:inline'>Next</span>
                     <ChevronRight size={16} />
                   </button>
                 </div>

@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/fetcher";
+import { extractErrorMessage, normalizeActionError } from "@/lib/error-utils";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -84,12 +85,10 @@ export async function loginAction(formData) {
     return response;
   } catch (error) {
     console.error("Login action error:", error);
-    return {
-      success: false,
-      code: error?.status || error?.code || 500,
-      message: error?.message || "Login failed",
-      errors: Array.isArray(error?.errors) ? error.errors : [],
-    };
+    return normalizeActionError(
+      error,
+      "Login failed. Please check your credentials.",
+    );
   }
 }
 
@@ -204,7 +203,7 @@ export async function updateProfileAction(formData) {
     return response;
   } catch (error) {
     console.error("Update profile error:", error);
-    throw new Error(error.message || "Failed to update profile");
+    throw new Error(extractErrorMessage(error, "Failed to update profile."));
   }
 }
 
@@ -269,7 +268,8 @@ export async function resetPasswordAction(token, newPassword, email) {
   } catch (error) {
     console.error("Reset password action error:", error);
 
-    let msg = error.message || "Failed to reset password.";
+    const baseMessage = extractErrorMessage(error, "Failed to reset password.");
+    let msg = baseMessage;
 
     if (msg.toLowerCase().includes("expired")) {
       msg = "This reset link has expired. Please request a new one.";
@@ -324,18 +324,23 @@ export async function changePasswordAction(passwordData) {
   } catch (error) {
     console.error("Password change error:", error);
 
-    let errorMessage = "Failed to change password";
+    const baseMessage = extractErrorMessage(
+      error,
+      "Failed to change password.",
+    );
+    const normalizedMessage = baseMessage.toLowerCase();
+    let errorMessage = baseMessage;
 
     if (
-      error.message.includes("User not found") ||
-      error.message.includes("incorrect") ||
-      error.message.includes("current") ||
-      error.message.includes("invalid")
+      normalizedMessage.includes("user not found") ||
+      normalizedMessage.includes("incorrect") ||
+      normalizedMessage.includes("current") ||
+      normalizedMessage.includes("invalid")
     ) {
       errorMessage = "Current password is incorrect";
     } else if (
-      error.message.includes("401") ||
-      error.message.includes("unauthorized")
+      normalizedMessage.includes("401") ||
+      normalizedMessage.includes("unauthorized")
     ) {
       errorMessage = "Session expired. Please login again.";
     }

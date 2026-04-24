@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { getAdminOverviewAction } from "@/action/admin.action";
 import { getNotifications } from "@/action/notification.action";
+import { extractErrorMessage } from "@/lib/error-utils";
 
 const SummaryCard = ({ isCollapsed, onToggle }) => {
   const [stats, setStats] = useState({
@@ -47,7 +48,7 @@ const SummaryCard = ({ isCollapsed, onToggle }) => {
         });
       } catch (err) {
         console.error("Failed to load overview:", err);
-        setError(err.message || "Failed to load summary data");
+        setError(extractErrorMessage(err, "Failed to load summary data."));
       } finally {
         setLoading(false);
       }
