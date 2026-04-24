@@ -14,8 +14,8 @@ import {
   User,
   FileText,
 } from "lucide-react";
-import { getJobs } from "@/action/job.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { getJobs } from "../../action/job.action";
+import { extractErrorMessage } from "../../lib/error-utils";
 
 const MainCard = () => {
   const [currentPage, setCurrentPage] = useState(1);

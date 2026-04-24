@@ -1,8 +1,8 @@
 "use client";
 
-import { loginAction, registerAction } from "@/action/auth.action";
-import { extractErrorList, extractErrorMessage } from "@/lib/error-utils";
-import { getOrCreateDeviceId } from "@/utils/deviceId";
+import { loginAction, registerAction } from "../../action/auth.action";
+import { extractErrorList, extractErrorMessage } from "../../lib/error-utils";
+import { getOrCreateDeviceId } from "../../utils/deviceId";
 import { Eye, EyeClosed, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

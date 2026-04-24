@@ -1,7 +1,7 @@
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
-import { normalizeActionError } from "@/lib/error-utils";
+import { apiFetch } from "../lib/fetcher";
+import { normalizeActionError } from "../lib/error-utils";
 import { cookies } from "next/headers";
 
 /* ======================

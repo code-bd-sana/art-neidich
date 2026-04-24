@@ -9,13 +9,13 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { extractErrorMessage } from "../../../../lib/error-utils";
 import {
   getCurrentUserAction,
   updateProfileAction,
   changePasswordAction,
   logoutAction,
-} from "@/action/auth.action";
+} from "../../../../action/auth.action";
 
 export default function Profile() {
   // State for form data

@@ -1,6 +1,6 @@
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
+import { apiFetch } from "../lib/fetcher";
 
 /* ======================
    Update Label
