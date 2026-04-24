@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { resetPasswordAction } from "@/action/auth.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { resetPasswordAction } from "../../../action/auth.action";
+import { extractErrorMessage } from "../../../lib/error-utils";
 import { Suspense } from "react";
 import { Eye, EyeOff } from "lucide-react";
 

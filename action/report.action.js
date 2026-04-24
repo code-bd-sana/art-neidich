@@ -1,8 +1,7 @@
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
+import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
-
 
 /* ======================
    Report
@@ -12,21 +11,21 @@ import { cookies } from "next/headers";
 export async function getReportById(id) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token'); 
+    const token = cookieStore.get("token");
 
     if (!token) {
       throw new Error("No authentication token found");
     }
 
-    const resp =  await apiFetch(`/report/${id}`, {
+    const resp = await apiFetch(`/report/${id}`, {
       method: "GET",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`, 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
       },
     });
     // console.log(resp)
-    return resp
+    return resp;
   } catch (error) {
     console.error("Get report error:", error);
     throw error;
@@ -41,7 +40,7 @@ export async function getReportById(id) {
 export async function updateReportStatus(id, status) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token'); 
+    const token = cookieStore.get("token");
 
     if (!token) {
       throw new Error("No authentication token found");
@@ -51,10 +50,10 @@ export async function updateReportStatus(id, status) {
     const resp = await apiFetch(`/report/${id}/status`, {
       method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`, 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
       },
-     body: JSON.stringify({ status: status })
+      body: JSON.stringify({ status: status }),
     });
 
     return resp;

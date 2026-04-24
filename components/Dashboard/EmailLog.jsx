@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ChevronDown } from "lucide-react";
-import { updateReportStatus } from "@/action/report.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { updateReportStatus } from "../../action/report.action";
+import { extractErrorMessage } from "../../lib/error-utils";
 
 export default function EmailLog({ jobData }) {
   console.log("EmailLog - jobData:", jobData);

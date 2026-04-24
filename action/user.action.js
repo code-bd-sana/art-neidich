@@ -1,6 +1,6 @@
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
+import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
 
 /* ======================
@@ -12,8 +12,8 @@ import { cookies } from "next/headers";
 export async function getUsers(page = 1, limit = 10, search = "", role = "") {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token'); 
-    
+    const token = cookieStore.get("token");
+
     if (!token) {
       throw new Error("No authentication token found");
     }
@@ -23,12 +23,12 @@ export async function getUsers(page = 1, limit = 10, search = "", role = "") {
       {
         method: "GET",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`, 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token.value}`,
         },
-      }
+      },
     );
-    
+
     return resp;
   } catch (error) {
     console.error("Get users error:", error);
@@ -45,40 +45,37 @@ export async function getUsers(page = 1, limit = 10, search = "", role = "") {
 export async function updateUserStatus(userId, action) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('token'); 
-    
+    const token = cookieStore.get("token");
+
     if (!token) {
       throw new Error("No authentication token found");
     }
 
     // Determine endpoint based on action
     let endpoint;
-    switch(action) {
-      case 'approve':
+    switch (action) {
+      case "approve":
         endpoint = `/user/${userId}/approve`;
         break;
-      case 'suspend':
+      case "suspend":
         endpoint = `/user/${userId}/suspend`;
         break;
-      case 'unsuspend':
+      case "unsuspend":
         endpoint = `/user/${userId}/unsuspend`;
         break;
       default:
         throw new Error(`Invalid action: ${action}`);
     }
 
-    const resp = await apiFetch(
-      endpoint,
-      {
-        method: "PATCH",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.value}`, 
-        },
-        body: JSON.stringify({}),
-      }
-    );
-    
+    const resp = await apiFetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+      body: JSON.stringify({}),
+    });
+
     return resp;
   } catch (error) {
     console.error("Update user status error:", error);

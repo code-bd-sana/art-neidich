@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { forgotPasswordAction } from "@/action/auth.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { forgotPasswordAction } from "../../../action/auth.action";
+import { extractErrorMessage } from "../../../lib/error-utils";
 import { useRouter } from "next/navigation";
 
 export default function ForgotPassword() {

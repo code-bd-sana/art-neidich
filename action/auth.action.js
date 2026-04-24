@@ -1,8 +1,8 @@
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
-import { extractErrorMessage, normalizeActionError } from "@/lib/error-utils";
-import { getOrCreateDeviceId } from "@/utils/deviceId";
+import { apiFetch } from "../lib/fetcher";
+import { extractErrorMessage, normalizeActionError } from "../lib/error-utils";
+import { getOrCreateDeviceId } from "../utils/deviceId";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 

@@ -1,15 +1,15 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, MoreVertical, Edit2, Trash2, Loader2, X } from "lucide-react";
-import { extractErrorMessage } from "@/lib/error-utils";
-import AddNewLabel from "@/components/Dashboard/AddNewLabel";
-import EditLabel from "@/components/Dashboard/EditLabel";
+import { extractErrorMessage } from "../../../../lib/error-utils";
+import AddNewLabel from "../../../../components/Dashboard/AddNewLabel";
+import EditLabel from "../../../../components/Dashboard/EditLabel";
 import {
   getLabels,
   createLabel,
   updateLabel,
   deleteLabel,
-} from "@/action/label.action";
+} from "../../../../action/label.action";
 
 export default function Labels() {
   const [searchTerm, setSearchTerm] = useState("");
