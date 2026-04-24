@@ -13,9 +13,9 @@ import {
   X,
   Filter,
 } from "lucide-react";
-import { extractErrorMessage } from "@/lib/error-utils";
-import { getUsers } from "@/action/user.action";
-import { updateUserStatus } from "@/action/user.action";
+import { extractErrorMessage } from "../../../../lib/error-utils";
+import { getUsers } from "../../../../action/user.action";
+import { updateUserStatus } from "../../../../action/user.action";
 
 export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);

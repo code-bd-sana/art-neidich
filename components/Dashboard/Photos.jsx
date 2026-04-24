@@ -7,12 +7,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getReportById } from "@/action/report.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { getReportById } from "../../action/report.action";
+import { extractErrorMessage } from "../../lib/error-utils";
 import Image from "next/image";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { generateReportPdf } from "@/utils/generateReportPdf";
+import { generateReportPdf } from "../../utils/generateReportPdf";
 
 export default function Photos({ jobData }) {
   const [loading, setLoading] = useState(true);

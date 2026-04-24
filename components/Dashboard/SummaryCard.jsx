@@ -14,9 +14,9 @@ import {
   FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getAdminOverviewAction } from "@/action/admin.action";
-import { getNotifications } from "@/action/notification.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import { getAdminOverviewAction } from "../../action/admin.action";
+import { getNotifications } from "../../action/notification.action";
+import { extractErrorMessage } from "../../lib/error-utils";
 
 const SummaryCard = ({ isCollapsed, onToggle }) => {
   const [stats, setStats] = useState({

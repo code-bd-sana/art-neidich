@@ -8,14 +8,16 @@ import {
   Tags,
   UserCog,
   LogOut,
+  Settings2,
+  ArchiveRestore,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logoutAction } from "@/action/auth.action";
-import { extractErrorMessage } from "@/lib/error-utils";
-import { getOrCreateDeviceId } from "@/utils/deviceId";
+import { logoutAction } from "../../action/auth.action";
+import { extractErrorMessage } from "../../lib/error-utils";
+import { getOrCreateDeviceId } from "../../utils/deviceId";
 
 const DashboardCard = ({
   isCollapsed,
@@ -53,6 +55,19 @@ const DashboardCard = ({
       label: "Inspectors",
       link: "/dashboard/inspectors",
     },
+    {
+      id: "Archive Reports",
+      icon: ArchiveRestore,
+      label: "Archive Reports",
+      link: "/dashboard/archive-reports",
+    },
+    {
+      id: "Archive Settings",
+      icon: Settings2,
+      label: "Archive Settings",
+      link: "/dashboard/archive-settings",
+    },
+
     { id: "Labels", icon: Tags, label: "Labels", link: "/dashboard/labels" },
   ];
 

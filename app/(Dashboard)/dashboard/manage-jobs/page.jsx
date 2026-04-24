@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown, Loader2, CheckCircle, Search } from "lucide-react";
-import { postJob } from "@/action/job.action";
-import { extractErrorList, extractErrorMessage } from "@/lib/error-utils";
-import { getUsers } from "@/action/user.action";
+import { postJob } from "../../../../action/job.action";
+import {
+  extractErrorList,
+  extractErrorMessage,
+} from "../../../../lib/error-utils";
+import { getUsers } from "../../../../action/user.action";
 import { useRouter } from "next/navigation";
 
 export default function ManageJobs() {

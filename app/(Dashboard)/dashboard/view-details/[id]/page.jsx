@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import EmailLog from "@/components/Dashboard/EmailLog";
-import Photos from "@/components/Dashboard/Photos";
-import Summary from "@/components/Dashboard/Summary";
-import { getJobById } from "@/action/job.action";
-import { extractErrorMessage } from "@/lib/error-utils";
+import EmailLog from "../../../../../components/Dashboard/EmailLog";
+import Photos from "../../../../../components/Dashboard/Photos";
+import Summary from "../../../../../components/Dashboard/Summary";
+import { getJobById } from "../../../../../action/job.action";
+import { extractErrorMessage } from "../../../../../lib/error-utils";
 import { Loader2 } from "lucide-react";
 
 export default function ViewDetailsPage() {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, cloneElement } from "react";
-import DashboardCard from "@/components/Dashboard/DashboardCard";
+import DashboardCard from "../../../components/Dashboard/DashboardCard";
 import { PanelLeft, PanelRight, User } from "lucide-react";
-import SummaryCard from "@/components/Dashboard/SummaryCard";
+import SummaryCard from "../../../components/Dashboard/SummaryCard";
 
 export default function DashboardLayout({ children }) {
   const [showLeftSidebarMobile, setShowLeftSidebarMobile] = useState(false);

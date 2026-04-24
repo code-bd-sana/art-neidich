@@ -1,7 +1,7 @@
 // action/notification.action.js
 "use server";
 
-import { apiFetch } from "@/lib/fetcher";
+import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
 
 /* ======================
