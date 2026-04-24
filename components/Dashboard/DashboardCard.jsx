@@ -14,6 +14,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { logoutAction } from "@/action/auth.action";
+import { extractErrorMessage } from "@/lib/error-utils";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
 
 const DashboardCard = ({
   isCollapsed,
@@ -171,7 +173,7 @@ const DashboardCard = ({
       // Real error
       console.error("Logout error:", error);
       setMessage({
-        text: error.message || "Logout failed. Please try again.",
+        text: extractErrorMessage(error, "Logout failed. Please try again."),
         type: "error",
       });
     } finally {

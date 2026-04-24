@@ -13,6 +13,7 @@ import {
   X,
   Filter,
 } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 import { getUsers } from "@/action/user.action";
 import { updateUserStatus } from "@/action/user.action";
 
@@ -44,11 +45,11 @@ export default function AdminPage() {
       if (data.success) {
         setAllAdmin(data.data || []);
       } else {
-        setError(data.message || "Failed to load Admin");
+        setError(extractErrorMessage(data, "Failed to load admin list."));
       }
     } catch (err) {
       console.error("Error fetching Admin:", err);
-      setError("Could not load Admin");
+      setError(extractErrorMessage(err, "Could not load admin list."));
     } finally {
       setLoading(false);
     }
@@ -101,7 +102,7 @@ export default function AdminPage() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, fetchAllAdmin]);
 
   // Initial load
   useEffect(() => {
@@ -136,11 +137,13 @@ export default function AdminPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to approve admin");
+        setActionError(
+          extractErrorMessage(response, "Failed to approve admin."),
+        );
       }
     } catch (err) {
       console.error("Error approving admin:", err);
-      setActionError("Failed to approve admin");
+      setActionError(extractErrorMessage(err, "Failed to approve admin."));
     } finally {
       setActionLoading((prev) => ({ ...prev, [adminId]: false }));
     }
@@ -170,11 +173,13 @@ export default function AdminPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to suspend admin");
+        setActionError(
+          extractErrorMessage(response, "Failed to suspend admin."),
+        );
       }
     } catch (err) {
       console.error("Error suspending admin:", err);
-      setActionError("Failed to suspend admin");
+      setActionError(extractErrorMessage(err, "Failed to suspend admin."));
     } finally {
       setActionLoading((prev) => ({ ...prev, [adminId]: false }));
     }
@@ -204,11 +209,13 @@ export default function AdminPage() {
           setSuccessMessage("");
         }, 3000);
       } else {
-        setActionError(response.message || "Failed to unsuspend admin");
+        setActionError(
+          extractErrorMessage(response, "Failed to unsuspend admin."),
+        );
       }
     } catch (err) {
       console.error("Error unsuspending admin:", err);
-      setActionError("Failed to unsuspend admin");
+      setActionError(extractErrorMessage(err, "Failed to unsuspend admin."));
     } finally {
       setActionLoading((prev) => ({ ...prev, [adminId]: false }));
     }

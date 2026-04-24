@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 import {
   getCurrentUserAction,
   updateProfileAction,
@@ -81,7 +82,7 @@ export default function Profile() {
       }
     } catch (err) {
       console.error("Load error:", err);
-      setError("Failed to load data");
+      setError(extractErrorMessage(err, "Failed to load data."));
     } finally {
       setLoading(false);
     }
@@ -193,7 +194,7 @@ export default function Profile() {
       }
     } catch (err) {
       console.error("Profile update error:", err);
-      setError(err.message || "Failed to update profile");
+      setError(extractErrorMessage(err, "Failed to update profile."));
     } finally {
       setUpdatingProfile(false);
     }
@@ -255,7 +256,7 @@ export default function Profile() {
       setShowPasswordForm(false);
     } catch (err) {
       console.error("Error:", err);
-      setError(err.message);
+      setError(extractErrorMessage(err, "Failed to change password."));
     } finally {
       setChangingPassword(false);
     }

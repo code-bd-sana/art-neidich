@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, MoreVertical, Edit2, Trash2, Loader2, X } from "lucide-react";
+import { extractErrorMessage } from "@/lib/error-utils";
 import AddNewLabel from "@/components/Dashboard/AddNewLabel";
 import EditLabel from "@/components/Dashboard/EditLabel";
 import {
@@ -60,11 +61,11 @@ export default function Labels() {
           setHasMore(page < totalPages);
           setCurrentPage(page);
         } else {
-          setError(response.message || "Failed to load labels");
+          setError(extractErrorMessage(response, "Failed to load labels."));
         }
       } catch (err) {
         console.error("Error fetching labels:", err);
-        setError("Could not load labels");
+        setError(extractErrorMessage(err, "Could not load labels."));
       } finally {
         if (loadMore) {
           setLoadingMore(false);
@@ -96,7 +97,7 @@ export default function Labels() {
   // Initial load and search term change
   useEffect(() => {
     fetchLabels(1, false, searchTerm);
-  }, [fetchLabels]);
+  }, [fetchLabels, searchTerm]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -166,11 +167,11 @@ export default function Labels() {
           fetchLabels(1, false, searchTerm);
         }, 500);
       } else {
-        setError(response.message || "Failed to create label");
+        setError(extractErrorMessage(response, "Failed to create label."));
       }
     } catch (err) {
       console.error("Error creating label:", err);
-      setError("Failed to create label");
+      setError(extractErrorMessage(err, "Failed to create label."));
     } finally {
       setActionLoading(false);
     }
@@ -207,11 +208,11 @@ export default function Labels() {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(response.message || "Failed to update label");
+        setError(extractErrorMessage(response, "Failed to update label."));
       }
     } catch (err) {
       console.error("Error updating label:", err);
-      setError("Failed to update label");
+      setError(extractErrorMessage(err, "Failed to update label."));
     } finally {
       setActionLoading(false);
     }
@@ -237,11 +238,11 @@ export default function Labels() {
           // Refresh total count
           fetchLabels(1, false, searchTerm);
         } else {
-          setError(response.message || "Failed to delete label");
+          setError(extractErrorMessage(response, "Failed to delete label."));
         }
       } catch (err) {
         console.error("Error deleting label:", err);
-        setError("Failed to delete label");
+        setError(extractErrorMessage(err, "Failed to delete label."));
       } finally {
         setActionLoading(false);
       }
