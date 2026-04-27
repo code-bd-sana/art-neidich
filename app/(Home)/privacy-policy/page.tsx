@@ -224,7 +224,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className='min-h-screen bg-white font-sans text-gray-700'>
       {/* Header */}
-      <header className='border-b border-gray-100 px-6 py-4'>
+      <header className='border-b border-gray-100 px-6 py-1 flex items-center justify-center'>
         <Link
           href='/'
           className='text-lg font-semibold text-gray-900 tracking-tight'>
@@ -240,7 +240,7 @@ export default function PrivacyPolicyPage() {
       </header>
 
       {/* Main Content */}
-      <main className='max-w-4xl mx-auto px-6 py-10'>
+      <main className='max-w-4xl mx-auto p-6'>
         {/* Title */}
         <h1 className='text-3xl font-bold text-gray-600 mb-1'>
           Privacy Policy{" "}
