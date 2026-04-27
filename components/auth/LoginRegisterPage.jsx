@@ -64,7 +64,28 @@ export default function LoginRegisterPage() {
 
       const result = await loginAction(loginPayload);
 
+      // Check if login was successful and if the user has admin role for dashboard access
       if (result.success) {
+        // Extract role from various possible locations in the response
+        const rawRole =
+          result?.user?.role ?? result?.data?.user?.role ?? result?.role;
+        const normalizedRole = String(rawRole ?? "")
+          .trim()
+          .toLowerCase();
+        const isAdminRole =
+          Number(rawRole) === 1 ||
+          normalizedRole === "1" ||
+          normalizedRole === "admin";
+
+        // If this is a web login, enforce admin role requirement
+        if (!isAdminRole) {
+          setMessage({
+            text: "Access denied. This dashboard is for admin users only.",
+            type: "error",
+          });
+          return;
+        }
+
         setMessage({
           text: "Login successful!",
           type: "success",
