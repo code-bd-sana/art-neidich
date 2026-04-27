@@ -42,6 +42,9 @@ export function middleware(req) {
     "/reset-password",
   ];
 
+  // Public content pages that should be accessible without login
+  const publicPages = ["/privacy-policy", "/terms"];
+
   // API routes - allow all
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();
@@ -63,6 +66,9 @@ export function middleware(req) {
 
   // 🔓 Allow auth pages for logged-out users
   if (authPages.includes(pathname)) return NextResponse.next();
+
+  // 🔓 Allow public policy/legal pages without authentication
+  if (publicPages.includes(pathname)) return NextResponse.next();
 
   // 🔐 All other pages require authentication
   if (!isAuthenticated) {
