@@ -62,6 +62,23 @@ export async function loginAction(formData) {
       }),
     });
 
+    // Determine if this is a web login and check user role for access control
+    const isWebLogin = String(formData.platform || "").toLowerCase() === "web";
+    const loggedInUser = response?.user || response?.data?.user || {};
+    const rawRole = loggedInUser?.role ?? response?.role ?? response?.data?.role;
+    const normalizedRole = String(rawRole ?? "").trim().toLowerCase();
+    const isAdminRole =
+      Number(rawRole) === 1 || normalizedRole === "1" || normalizedRole === "admin";
+
+    // Restrict only web dashboard access to admins (role=1).
+    if (isWebLogin && !isAdminRole) {
+      return {
+        success: false,
+        code: 403,
+        message: "Access denied. This dashboard is for admin users only.",
+      };
+    }
+
     const token = response?.token || response?.data?.token;
 
     if (!token) {
