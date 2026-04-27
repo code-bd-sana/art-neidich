@@ -243,8 +243,8 @@ export default function PrivacyPolicyPage() {
       <main className='max-w-5xl mx-auto p-6'>
         {/* Title */}
         <h1 className='text-3xl font-bold text-gray-600 mb-1'>
-          Privacy Policy{" "}
-          {/* <span className='text-[#FF7F60]'>FHA Inspector App</span> */}
+          Privacy Policy -{" "}
+          <span className='text-[#FF7F60] text-[28px]'>FHA Inspector App</span>
         </h1>
 
         {/* Effective Date */}
