@@ -240,7 +240,7 @@ export default function PrivacyPolicyPage() {
       </header>
 
       {/* Main Content */}
-      <main className='max-w-4xl mx-auto p-6'>
+      <main className='max-w-5xl mx-auto p-6'>
         {/* Title */}
         <h1 className='text-3xl font-bold text-gray-600 mb-1'>
           Privacy Policy{" "}
