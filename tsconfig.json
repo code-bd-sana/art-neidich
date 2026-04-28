@@ -30,7 +30,7 @@
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/(Home)/privacy-policy/page.jsx", "app/(Home)/account-deletion-policy/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]
