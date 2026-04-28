@@ -43,7 +43,7 @@ export function middleware(req) {
   ];
 
   // Public content pages that should be accessible without login
-  const publicPages = ["/privacy-policy", "/terms"];
+  const publicPages = ["/privacy-policy", "/terms", "/account-deletion-policy"];
 
   // API routes - allow all
   if (pathname.startsWith("/api/")) {
