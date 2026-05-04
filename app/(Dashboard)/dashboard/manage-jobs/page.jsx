@@ -8,10 +8,8 @@ import {
   extractErrorMessage,
 } from "../../../../lib/error-utils";
 import { getUsers } from "../../../../action/user.action";
-import { useRouter } from "next/navigation";
 
 export default function ManageJobs() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -40,7 +38,7 @@ export default function ManageJobs() {
     formType: "92051 - FHA Inspection",
     agreedFee: "",
     orderId: "",
-    development: "Histrung Heights",
+    development: "",
     specialNoteForApOrAr: "",
     siteContactEmail: "",
   });
@@ -280,15 +278,16 @@ export default function ManageJobs() {
           formType: "92051 - FHA Inspection",
           agreedFee: "",
           orderId: "",
-          development: "Histrung Heights",
+          development: "",
           specialNoteForApOrAr: "",
           siteContactEmail: "",
         });
         setSelectedInspector(null);
         setSelectedFeeType("Select");
 
-        router.push("/dashboard");
-        router.refresh();
+        // Use a hard navigation to avoid occasional client-router pending states.
+        window.location.assign("/dashboard");
+        return;
 
         setTimeout(() => {
           setSuccess(false);
@@ -608,7 +607,7 @@ export default function ManageJobs() {
               {/* Note to Inspector */}
               <div>
                 <label className='block font-medium text-gray-700 mb-2'>
-                  <span className='font-bold'>Note to Inspector*</span>
+                  <span className='font-bold'>Note to Inspector</span>
                 </label>
                 <textarea
                   name='specialNotesForInspector'
@@ -695,8 +694,9 @@ export default function ManageJobs() {
                   type='text'
                   name='development'
                   value={formData.development}
-                  onChange={handleChange}
                   required
+                  onChange={handleChange}
+                  placeholder='e.g., Histrung Heights'
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                 />
               </div>
@@ -735,7 +735,7 @@ export default function ManageJobs() {
               {/* Notes to AP/AR */}
               <div>
                 <label className='block font-medium text-gray-700 mb-2'>
-                  <span className='font-bold'>Notes to AP/AR*</span>
+                  <span className='font-bold'>Notes to AP/AR</span>
                 </label>
                 <textarea
                   name='specialNoteForApOrAr'
