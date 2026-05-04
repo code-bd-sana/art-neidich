@@ -30,6 +30,7 @@ const MainCard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedSort, setSelectedSort] = useState("all");
   const [expandedCard, setExpandedCard] = useState(null);
 
   const searchTimeoutRef = useRef(null);
@@ -106,7 +107,34 @@ const MainCard = () => {
           rawData: job,
         }));
         console.log("data", data);
-        setInspections(transformedData);
+
+        const sortData = (items) => {
+          const arr = [...items];
+          switch (selectedSort) {
+            case "date_asc":
+              return arr.sort(
+                (a, b) =>
+                  new Date(a.rawData.createdAt) - new Date(b.rawData.createdAt),
+              );
+            case "date_desc":
+              return arr.sort(
+                (a, b) =>
+                  new Date(b.rawData.createdAt) - new Date(a.rawData.createdAt),
+              );
+            case "location_asc":
+              return arr.sort((a, b) =>
+                (a.address || "").localeCompare(b.address || ""),
+              );
+            case "location_desc":
+              return arr.sort((a, b) =>
+                (b.address || "").localeCompare(a.address || ""),
+              );
+            default:
+              return arr;
+          }
+        };
+
+        setInspections(sortData(transformedData));
         setTotalPages(data.metaData?.totalPage || 1);
         setItemsPerPage(data.metaData?.limit || 10);
       } else {
@@ -118,7 +146,7 @@ const MainCard = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchTerm, selectedStatus]);
+  }, [currentPage, itemsPerPage, searchTerm, selectedStatus, selectedSort]);
 
   // Single effect for all fetching
   useEffect(() => {
@@ -164,9 +192,17 @@ const MainCard = () => {
     setShowFilter(false);
   };
 
+  // Handler for sort change
+  const handleSortChange = (sortValue) => {
+    setSelectedSort(sortValue);
+    setCurrentPage(1);
+    setShowSort(false);
+  };
+
   // Handler to clear all filters
   const clearFilters = () => {
     setSelectedStatus("all");
+    setSelectedSort("all");
     setSearchTerm("");
     setCurrentPage(1);
     setShowFilter(false);
@@ -237,11 +273,10 @@ const MainCard = () => {
     return option ? option.label : "All Status";
   };
 
-  // Sorting logic can be implemented here when showSort is toggled
-  const handleSortChange = (sortValue) => {
-    setSortBy(sortValue);
-    setCurrentPage(1);
-    setShowSort(false);
+  // Get label for currently selected sort option
+  const getCurrentSortLabel = () => {
+    const option = sortOptions.find((opt) => opt.value === selectedSort);
+    return option ? option.label : "Sort By";
   };
 
   return (
@@ -281,14 +316,12 @@ const MainCard = () => {
           </div>
 
           {/* Sort By Button - location & date */}
-          <div className='flex gap-3'>
-            <button
-              onClick={() => setShowSort(!showSort)}
-              className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors'>
-              <SortAsc size={20} />
-              <span className='text-sm font-medium'>Sort By</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setShowSort(!showSort)}
+            className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors'>
+            <SortAsc size={20} />
+            <span className='text-sm font-medium'>{getCurrentSortLabel()}</span>
+          </button>
 
           {/* Filter Button - Both Mobile & Desktop */}
           <button
@@ -346,6 +379,56 @@ const MainCard = () => {
                 </button>
                 <button
                   onClick={() => setShowFilter(false)}
+                  className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'>
+                  Apply
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+        {/* Sorting Modal - Works for both Mobile & Desktop */}
+        {showSort && (
+          <>
+            {/* Backdrop */}
+            <div
+              className='fixed inset-0 bg-black/50 z-40'
+              onClick={() => setShowSort(false)}
+            />
+
+            {/* Modal */}
+            <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 p-6'>
+              <div className='flex justify-between items-center mb-6'>
+                <h2 className='text-xl font-bold text-gray-800'>Sort</h2>
+                <button
+                  onClick={() => setShowSort(false)}
+                  className='text-gray-500 hover:text-gray-700'>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className='space-y-2'>
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSortChange(option.value)}
+                    className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-colors ${
+                      selectedSort === option.value
+                        ? "bg-teal-50 text-teal-700 border border-teal-200"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className='mt-6 flex gap-3'>
+                <button
+                  onClick={clearFilters}
+                  className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors'>
+                  Clear All
+                </button>
+                <button
+                  onClick={() => setShowSort(false)}
                   className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'>
                   Apply
                 </button>
@@ -511,7 +594,7 @@ const MainCard = () => {
                           Site Contact Name
                         </th>
                         <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Date Out
+                          Due Date
                         </th>
                         <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
                           Date Received
