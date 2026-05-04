@@ -15,8 +15,9 @@ import {
   FileText,
   X,
   SortAsc,
+  Trash2,
 } from "lucide-react";
-import { getJobs } from "../../action/job.action";
+import { getJobs, deleteJob } from "../../action/job.action";
 import { extractErrorMessage } from "../../lib/error-utils";
 
 const MainCard = () => {
@@ -32,6 +33,8 @@ const MainCard = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedSort, setSelectedSort] = useState("all");
   const [expandedCard, setExpandedCard] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletingJobId, setDeletingJobId] = useState("");
 
   const searchTimeoutRef = useRef(null);
   const isInitialMount = useRef(true);
@@ -206,6 +209,43 @@ const MainCard = () => {
     setSearchTerm("");
     setCurrentPage(1);
     setShowFilter(false);
+  };
+
+  const handleDeleteClick = (inspection) => {
+    setDeleteTarget(inspection);
+  };
+
+  const handleDeleteCancel = () => {
+    if (deletingJobId) return;
+    setDeleteTarget(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget?.id) return;
+
+    setDeletingJobId(deleteTarget.id);
+    setError("");
+
+    try {
+      const resp = await deleteJob(deleteTarget.id);
+
+      if (resp?.success) {
+        setDeleteTarget(null);
+        setExpandedCard((prev) => (prev === deleteTarget.id ? null : prev));
+
+        if (inspections.length === 1 && currentPage > 1) {
+          setCurrentPage((prev) => prev - 1);
+        } else {
+          fetchInspections();
+        }
+      } else {
+        setError(extractErrorMessage(resp, "Failed to delete job."));
+      }
+    } catch (err) {
+      setError(extractErrorMessage(err, "Failed to delete job."));
+    } finally {
+      setDeletingJobId("");
+    }
   };
 
   // Pagination Previous Page handlers
@@ -560,12 +600,25 @@ const MainCard = () => {
                           </div>
                         </div>
 
-                        <Link href={`/dashboard/view-details/${inspection.id}`}>
-                          <button className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2'>
-                            <Eye size={18} />
-                            View Details
+                        <div className='grid grid-cols-2 gap-3'>
+                          <Link
+                            href={`/dashboard/view-details/${inspection.id}`}>
+                            <button className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2'>
+                              <Eye size={18} />
+                              View
+                            </button>
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteClick(inspection)}
+                            disabled={deletingJobId === inspection.id}
+                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60'>
+                            {deletingJobId === inspection.id ? (
+                              <Loader2 size={18} className='animate-spin' />
+                            ) : (
+                              <Trash2 size={18} />
+                            )}
                           </button>
-                        </Link>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -638,13 +691,28 @@ const MainCard = () => {
                             </span>
                           </td>
                           <td className='py-3 px-4'>
-                            <Link
-                              href={`/dashboard/view-details/${inspection.id}`}>
-                              <button className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline'>
-                                <Eye size={16} className='mr-2' />
-                                View
+                            <div className='flex items-center gap-4'>
+                              <Link
+                                href={`/dashboard/view-details/${inspection.id}`}>
+                                <button className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline'>
+                                  <Eye size={16} className='mr-2' />
+                                  View
+                                </button>
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteClick(inspection)}
+                                disabled={deletingJobId === inspection.id}
+                                className='text-red-600 hover:text-red-800 font-medium flex items-center hover:underline disabled:opacity-60'>
+                                {deletingJobId === inspection.id ? (
+                                  <Loader2
+                                    size={16}
+                                    className='mr-2 animate-spin'
+                                  />
+                                ) : (
+                                  <Trash2 size={16} className='mr-2' />
+                                )}
                               </button>
-                            </Link>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -702,6 +770,45 @@ const MainCard = () => {
               </div>
             </>
           )}
+        </>
+      )}
+
+      {deleteTarget && (
+        <>
+          <div
+            className='fixed inset-0 bg-black/50 z-40'
+            onClick={handleDeleteCancel}
+          />
+          <div className='fixed top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 p-6'>
+            <h2 className='text-xl font-bold text-gray-800 mb-2'>Delete Job</h2>
+            <p className='text-sm text-gray-600 mb-6'>
+              Are you sure you want to delete this job
+              {deleteTarget.orderId
+                ? ` (Order ID: ${deleteTarget.orderId})`
+                : ""}
+              ? This action cannot be undone.
+            </p>
+
+            <div className='flex gap-3'>
+              <button
+                onClick={handleDeleteCancel}
+                disabled={!!deletingJobId}
+                className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-60'>
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={!!deletingJobId}
+                className='flex-1 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2'>
+                {deletingJobId ? (
+                  <Loader2 size={18} className='animate-spin' />
+                ) : (
+                  <Trash2 size={18} />
+                )}
+                Delete
+              </button>
+            </div>
+          </div>
         </>
       )}
     </div>
