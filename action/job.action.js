@@ -95,3 +95,32 @@ export async function getJobById(id) {
     throw error;
   }
 }
+
+/* ======================
+   Job
+   DELETE /api/v1/job/:id
+   Private Api
+====================== */
+export async function deleteJob(id) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const resp = await apiFetch(`/job/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+
+    return resp;
+  } catch (error) {
+    console.error("Delete job error:", error);
+    return normalizeActionError(error, "Failed to delete the job.");
+  }
+}
