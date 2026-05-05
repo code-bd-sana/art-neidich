@@ -603,15 +603,14 @@ const MainCard = () => {
                         <div className='grid grid-cols-2 gap-3'>
                           <Link
                             href={`/dashboard/view-details/${inspection.id}`}>
-                            <button className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2'>
+                            <button className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer'>
                               <Eye size={18} />
-                              View
                             </button>
                           </Link>
                           <button
                             onClick={() => handleDeleteClick(inspection)}
                             disabled={deletingJobId === inspection.id}
-                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60'>
+                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60 cursor-pointer'>
                             {deletingJobId === inspection.id ? (
                               <Loader2 size={18} className='animate-spin' />
                             ) : (
@@ -694,15 +693,14 @@ const MainCard = () => {
                             <div className='flex items-center gap-4'>
                               <Link
                                 href={`/dashboard/view-details/${inspection.id}`}>
-                                <button className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline'>
+                                <button className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer'>
                                   <Eye size={16} className='mr-2' />
-                                  View
                                 </button>
                               </Link>
                               <button
                                 onClick={() => handleDeleteClick(inspection)}
                                 disabled={deletingJobId === inspection.id}
-                                className='text-red-600 hover:text-red-800 font-medium flex items-center hover:underline disabled:opacity-60'>
+                                className='text-red-600 hover:text-red-800 font-medium flex items-center hover:underline disabled:opacity-60 cursor-pointer'>
                                 {deletingJobId === inspection.id ? (
                                   <Loader2
                                     size={16}

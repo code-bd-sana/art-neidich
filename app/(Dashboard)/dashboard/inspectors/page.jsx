@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   User,
@@ -12,17 +13,21 @@ import {
   Search,
   X,
   Filter,
+  Trash2,
 } from "lucide-react";
 import { extractErrorMessage } from "../../../../lib/error-utils";
-import { getUsers } from "../../../../action/user.action";
-import { updateUserStatus } from "../../../../action/user.action";
+import {
+  deleteUser,
+  getUsers,
+  updateUserStatus,
+} from "../../../../action/user.action";
 
 export default function InspectorPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [allInspectors, setAllInspectors] = useState([]); // Store ALL fetched inspectors
-  const [filteredInspectors, setFilteredInspectors] = useState([]); // All filtered inspectors
-  const [paginatedInspectors, setPaginatedInspectors] = useState([]); // Current page inspectors
+  const [allInspectors, setAllInspectors] = useState([]);
+  const [filteredInspectors, setFilteredInspectors] = useState([]);
+  const [paginatedInspectors, setPaginatedInspectors] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState({});
   const [error, setError] = useState(null);
@@ -32,14 +37,13 @@ export default function InspectorPage() {
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [actionError, setActionError] = useState("");
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
   const itemsPerPage = 10;
 
-  // Fetch ALL inspectors from API (no pagination on server)
   const fetchAllInspectors = useCallback(async (search = "") => {
     try {
       setLoading(true);
-      // Fetch a large number to get all inspectors
       const data = await getUsers(1, 1000, search, "2");
 
       if (data.success) {
@@ -55,11 +59,9 @@ export default function InspectorPage() {
     }
   }, []);
 
-  // Apply filtering and pagination
   useEffect(() => {
     let filtered = [...allInspectors];
 
-    // Apply status filter
     if (filterStatus !== "all") {
       filtered = filtered.filter((inspector) => {
         if (filterStatus === "pending") {
@@ -77,48 +79,59 @@ export default function InspectorPage() {
 
     setFilteredInspectors(filtered);
 
-    // Calculate total pages
     const totalFiltered = filtered.length;
-    const totalPages = Math.ceil(totalFiltered / itemsPerPage);
-    setTotalPages(totalPages || 1);
+    const nextTotalPages = Math.ceil(totalFiltered / itemsPerPage);
+    setTotalPages(nextTotalPages || 1);
 
-    // Reset to page 1 if current page is beyond total pages
-    if (currentPage > totalPages) {
+    if (currentPage > nextTotalPages) {
       setCurrentPage(1);
     }
 
-    // Get paginated inspectors for current page
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginated = filtered.slice(startIndex, endIndex);
     setPaginatedInspectors(paginated);
   }, [allInspectors, filterStatus, currentPage]);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to page 1 on search
+      setCurrentPage(1);
       fetchAllInspectors(searchTerm);
     }, 500);
 
     return () => clearTimeout(timer);
   }, [searchTerm, fetchAllInspectors]);
 
-  // Initial load
   useEffect(() => {
     fetchAllInspectors();
   }, [fetchAllInspectors]);
 
-  // Handle approve action
+  const triggerSuccess = (message) => {
+    setSuccessMessage(message);
+    setSuccess(true);
+
+    setTimeout(() => {
+      setSuccess(false);
+      setSuccessMessage("");
+    }, 3000);
+  };
+
+  const getActionLoadingKey = (id, action) => `${id}-${action}`;
+
+  const isActionLoading = (id, action) =>
+    Boolean(actionLoading[getActionLoadingKey(id, action)]);
+
   const handleApprove = async (inspectorId, inspectorName) => {
+    const loadingKey = getActionLoadingKey(inspectorId, "approve");
+
     try {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
-      setActionError(""); // Clear any previous errors
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
+      setActionError("");
+      setOpenActionMenuId(null);
 
       const response = await updateUserStatus(inspectorId, "approve");
 
       if (response.success) {
-        // Update the specific inspector in our state
         setAllInspectors((prev) =>
           prev.map((inspector) =>
             inspector._id === inspectorId
@@ -127,15 +140,7 @@ export default function InspectorPage() {
           ),
         );
 
-        // Show success message
-        setSuccessMessage(`${inspectorName} has been approved successfully!`);
-        setSuccess(true);
-
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-          setSuccess(false);
-          setSuccessMessage("");
-        }, 3000);
+        triggerSuccess(`${inspectorName} has been approved successfully!`);
       } else {
         setActionError(
           extractErrorMessage(response, "Failed to approve inspector."),
@@ -145,15 +150,17 @@ export default function InspectorPage() {
       console.error("Error approving inspector:", err);
       setActionError(extractErrorMessage(err, "Failed to approve inspector."));
     } finally {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
 
-  // Handle suspend action
   const handleSuspend = async (inspectorId, inspectorName) => {
+    const loadingKey = getActionLoadingKey(inspectorId, "suspend");
+
     try {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
       setActionError("");
+      setOpenActionMenuId(null);
 
       const response = await updateUserStatus(inspectorId, "suspend");
 
@@ -166,14 +173,7 @@ export default function InspectorPage() {
           ),
         );
 
-        // Show success message
-        setSuccessMessage(`${inspectorName} has been suspended successfully!`);
-        setSuccess(true);
-
-        setTimeout(() => {
-          setSuccess(false);
-          setSuccessMessage("");
-        }, 3000);
+        triggerSuccess(`${inspectorName} has been suspended successfully!`);
       } else {
         setActionError(
           extractErrorMessage(response, "Failed to suspend inspector."),
@@ -183,15 +183,17 @@ export default function InspectorPage() {
       console.error("Error suspending inspector:", err);
       setActionError(extractErrorMessage(err, "Failed to suspend inspector."));
     } finally {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
 
-  // Handle unsuspend action
   const handleUnsuspend = async (inspectorId, inspectorName) => {
+    const loadingKey = getActionLoadingKey(inspectorId, "unsuspend");
+
     try {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: true }));
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
       setActionError("");
+      setOpenActionMenuId(null);
 
       const response = await updateUserStatus(inspectorId, "unsuspend");
 
@@ -204,16 +206,7 @@ export default function InspectorPage() {
           ),
         );
 
-        // Show success message
-        setSuccessMessage(
-          `${inspectorName} has been unsuspended successfully!`,
-        );
-        setSuccess(true);
-
-        setTimeout(() => {
-          setSuccess(false);
-          setSuccessMessage("");
-        }, 3000);
+        triggerSuccess(`${inspectorName} has been unsuspended successfully!`);
       } else {
         setActionError(
           extractErrorMessage(response, "Failed to unsuspend inspector."),
@@ -225,42 +218,130 @@ export default function InspectorPage() {
         extractErrorMessage(err, "Failed to unsuspend inspector."),
       );
     } finally {
-      setActionLoading((prev) => ({ ...prev, [inspectorId]: false }));
-    }
-  };
-  // Determine action button based on inspector status
-  const getActionButton = (inspector) => {
-    if (!inspector.isApproved) {
-      return {
-        text: "Approve",
-        color: "bg-teal-600 hover:bg-teal-700 text-white",
-        icon: <Check className='text-white' size={16} />,
-        onClick: () => handleApprove(inspector._id, inspector.firstName),
-      };
-    } else if (inspector.isSuspended) {
-      return {
-        text: "Unsuspend",
-        color: "bg-green-600 hover:bg-green-700 text-white",
-        icon: <CheckCircle className='text-white' size={16} />,
-        onClick: () => handleUnsuspend(inspector._id, inspector.firstName),
-      };
-    } else {
-      return {
-        text: "Suspend",
-        color: "bg-red-600 hover:bg-red-700 text-white",
-        icon: <Ban className='text-white' size={16} />,
-        onClick: () => handleSuspend(inspector._id, inspector.firstName),
-      };
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
 
-  // Clear search
+  const handleDelete = async (inspectorId, inspectorName) => {
+    const loadingKey = getActionLoadingKey(inspectorId, "delete");
+
+    try {
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
+      setActionError("");
+      setOpenActionMenuId(null);
+
+      const response = await deleteUser(inspectorId);
+
+      if (response.success) {
+        setAllInspectors((prev) =>
+          prev.filter((inspector) => inspector._id !== inspectorId),
+        );
+        triggerSuccess(`${inspectorName} has been deleted successfully!`);
+      } else {
+        setActionError(
+          extractErrorMessage(response, "Failed to delete inspector."),
+        );
+      }
+    } catch (err) {
+      console.error("Error deleting inspector:", err);
+      setActionError(extractErrorMessage(err, "Failed to delete inspector."));
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
+    }
+  };
+
+  const getInspectorActions = (inspector) => {
+    const actions = [];
+
+    if (!inspector.isApproved) {
+      actions.push({
+        key: "approve",
+        label: "Approve",
+        icon: <Check size={14} />,
+        className: "text-teal-700",
+        onClick: () => handleApprove(inspector._id, inspector.firstName),
+      });
+    } else if (inspector.isSuspended) {
+      actions.push({
+        key: "unsuspend",
+        label: "Unsuspend",
+        icon: <CheckCircle size={14} />,
+        className: "text-green-700",
+        onClick: () => handleUnsuspend(inspector._id, inspector.firstName),
+      });
+    } else {
+      actions.push({
+        key: "suspend",
+        label: "Suspend",
+        icon: <Ban size={14} />,
+        className: "text-amber-700",
+        onClick: () => handleSuspend(inspector._id, inspector.firstName),
+      });
+    }
+
+    actions.push({
+      key: "delete",
+      label: "Delete",
+      icon: <Trash2 size={14} />,
+      className: "text-red-700",
+      onClick: () => handleDelete(inspector._id, inspector.firstName),
+    });
+
+    return actions;
+  };
+
+  const renderActionDropdown = (inspector) => {
+    const actions = getInspectorActions(inspector);
+    const isAnyActionLoading = actions.some((action) =>
+      isActionLoading(inspector._id, action.key),
+    );
+
+    return (
+      <div className='relative'>
+        <button
+          onClick={() =>
+            setOpenActionMenuId((prev) =>
+              prev === inspector._id ? null : inspector._id,
+            )
+          }
+          disabled={isAnyActionLoading}
+          className='px-3 py-2 text-sm inline-flex items-center gap-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'>
+          {isAnyActionLoading ? (
+            <>
+              <Loader2 className='animate-spin h-4 w-4' />
+              Processing...
+            </>
+          ) : (
+            <>
+              Actions
+              <ChevronDown size={14} />
+            </>
+          )}
+        </button>
+
+        {openActionMenuId === inspector._id && !isAnyActionLoading && (
+          <div className='absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden'>
+            {actions.map((action) => (
+              <button
+                key={action.key}
+                onClick={action.onClick}
+                className={`w-full px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-50 ${action.className}`}>
+                {action.icon}
+                {action.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const clearSearch = () => {
     setSearchTerm("");
     setCurrentPage(1);
+    setOpenActionMenuId(null);
   };
 
-  // Pagination
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
@@ -290,7 +371,6 @@ export default function InspectorPage() {
     return pages;
   };
 
-  // Calculate showing range
   const getShowingRange = () => {
     const start =
       filteredInspectors.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
@@ -315,7 +395,6 @@ export default function InspectorPage() {
   return (
     <div className='min-h-screen bg-gray-50 p-4 md:p-6'>
       <div>
-        {/* Header */}
         <div className='mb-6'>
           <h1 className='text-2xl md:text-3xl font-bold text-gray-800'>
             Inspector List
@@ -325,7 +404,6 @@ export default function InspectorPage() {
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
             <p className='font-medium'>Error: {error}</p>
@@ -337,7 +415,6 @@ export default function InspectorPage() {
           </div>
         )}
 
-        {/* Success Message */}
         {success && (
           <div className='mb-6 p-4 bg-green-50 text-green-700 rounded-lg border border-green-200 flex items-center gap-2'>
             <CheckCircle size={20} />
@@ -353,7 +430,6 @@ export default function InspectorPage() {
           </div>
         )}
 
-        {/* Action Error Message */}
         {actionError && (
           <div className='mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200'>
             <p className='font-medium'>Error: {actionError}</p>
@@ -365,7 +441,6 @@ export default function InspectorPage() {
           </div>
         )}
 
-        {/* Search and Filter Bar - Desktop */}
         <div className='hidden md:flex items-center gap-4 mb-6'>
           <div className='relative flex-1 max-w-md'>
             <Search
@@ -388,7 +463,6 @@ export default function InspectorPage() {
             )}
           </div>
 
-          {/* Status Filter - Desktop */}
           <div className='flex items-center gap-2'>
             <span className='text-sm font-medium text-gray-700'>Status:</span>
             <select
@@ -396,6 +470,7 @@ export default function InspectorPage() {
               onChange={(e) => {
                 setFilterStatus(e.target.value);
                 setCurrentPage(1);
+                setOpenActionMenuId(null);
               }}
               className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'>
               <option value='all'>All Inspectors</option>
@@ -405,13 +480,13 @@ export default function InspectorPage() {
             </select>
           </div>
 
-          {/* Clear Filters Button */}
           {hasFilters && (
             <button
               onClick={() => {
                 setSearchTerm("");
                 setFilterStatus("all");
                 setCurrentPage(1);
+                setOpenActionMenuId(null);
               }}
               className='px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
               Clear Filters
@@ -419,7 +494,6 @@ export default function InspectorPage() {
           )}
         </div>
 
-        {/* Search and Filter Bar - Mobile */}
         <div className='md:hidden space-y-3 mb-6'>
           <div className='relative'>
             <Search
@@ -460,7 +534,6 @@ export default function InspectorPage() {
             </div>
           </div>
 
-          {/* Mobile Filters Dropdown */}
           {showMobileFilters && (
             <div className='bg-white border border-gray-200 rounded-lg p-4 shadow-sm'>
               <div className='flex justify-between items-center mb-3'>
@@ -479,6 +552,7 @@ export default function InspectorPage() {
                       setFilterStatus(status);
                       setCurrentPage(1);
                       setShowMobileFilters(false);
+                      setOpenActionMenuId(null);
                     }}
                     className={`px-3 py-2 rounded-lg text-sm font-medium ${
                       filterStatus === status
@@ -499,6 +573,7 @@ export default function InspectorPage() {
                     setFilterStatus("all");
                     setCurrentPage(1);
                     setShowMobileFilters(false);
+                    setOpenActionMenuId(null);
                   }}
                   className='w-full mt-4 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
                   Clear All Filters
@@ -508,9 +583,7 @@ export default function InspectorPage() {
           )}
         </div>
 
-        {/* Table Container */}
         <div className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-          {/* Desktop Table */}
           <div className='hidden md:block overflow-x-auto'>
             {paginatedInspectors.length === 0 ? (
               <div className='p-8 text-center'>
@@ -526,6 +599,7 @@ export default function InspectorPage() {
                       setSearchTerm("");
                       setFilterStatus("all");
                       setCurrentPage(1);
+                      setOpenActionMenuId(null);
                     }}
                     className='mt-2 text-sm text-teal-600 hover:text-teal-800'>
                     Clear filters
@@ -554,83 +628,65 @@ export default function InspectorPage() {
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-gray-200'>
-                  {paginatedInspectors.map((inspector) => {
-                    const action = getActionButton(inspector);
-                    const isLoading = actionLoading[inspector._id];
-
-                    return (
-                      <tr
-                        key={inspector._id}
-                        className='hover:bg-gray-50 transition-colors'>
-                        <td className='py-4 px-6'>
-                          <div className='flex items-center space-x-3'>
-                            <div className='w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center'>
-                              <User size={16} className='text-gray-600' />
-                            </div>
-                            <div>
-                              <span className='text-sm font-medium text-gray-800 block'>
-                                {inspector.firstName} {inspector.lastName}
-                              </span>
-                              <span className='text-xs text-gray-500'>
-                                {!inspector.isApproved
-                                  ? "Pending Approval"
-                                  : inspector.isSuspended
-                                    ? "Suspended"
-                                    : "Active"}
-                              </span>
-                            </div>
+                  {paginatedInspectors.map((inspector) => (
+                    <tr
+                      key={inspector._id}
+                      className='hover:bg-gray-50 transition-colors'>
+                      <td className='py-4 px-6'>
+                        <div className='flex items-center space-x-3'>
+                          <div className='w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center'>
+                            <User size={16} className='text-gray-600' />
                           </div>
-                        </td>
-                        <td className='py-4 px-6'>
-                          <span className='text-sm text-gray-600'>
-                            {inspector.email}
-                          </span>
-                        </td>
-                        <td className='py-4 px-6'>
-                          <span className='text-sm font-medium text-gray-800'>
-                            {inspector.userId}
-                          </span>
-                        </td>
-                        <td className='py-4 px-6'>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              !inspector.isApproved
-                                ? "bg-yellow-100 text-yellow-800"
+                          <div>
+                            <span className='text-sm font-medium text-gray-800 block'>
+                              {inspector.firstName} {inspector.lastName}
+                            </span>
+                            <span className='text-xs text-gray-500'>
+                              {!inspector.isApproved
+                                ? "Pending Approval"
                                 : inspector.isSuspended
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-green-100 text-green-800"
-                            }`}>
-                            {!inspector.isApproved
-                              ? "Pending"
+                                  ? "Suspended"
+                                  : "Active"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className='py-4 px-6'>
+                        <span className='text-sm text-gray-600'>
+                          {inspector.email}
+                        </span>
+                      </td>
+                      <td className='py-4 px-6'>
+                        <span className='text-sm font-medium text-gray-800'>
+                          {inspector.userId}
+                        </span>
+                      </td>
+                      <td className='py-4 px-6'>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            !inspector.isApproved
+                              ? "bg-yellow-100 text-yellow-800"
                               : inspector.isSuspended
-                                ? "Suspended"
-                                : "Active"}
-                          </span>
-                        </td>
-                        <td className='py-4 px-6'>
-                          <button
-                            onClick={action.onClick}
-                            disabled={isLoading}
-                            className={`px-4 py-2 text-sm flex gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}>
-                            {isLoading ? (
-                              <Loader2 className='animate-spin h-4 w-4' />
-                            ) : (
-                              <>
-                                {action.icon}
-                                {action.text}
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                                ? "bg-red-100 text-red-800"
+                                : "bg-green-100 text-green-800"
+                          }`}>
+                          {!inspector.isApproved
+                            ? "Pending"
+                            : inspector.isSuspended
+                              ? "Suspended"
+                              : "Active"}
+                        </span>
+                      </td>
+                      <td className='py-4 px-6'>
+                        {renderActionDropdown(inspector)}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}
           </div>
 
-          {/* Mobile Cards View */}
           <div className='md:hidden'>
             {paginatedInspectors.length === 0 ? (
               <div className='p-8 text-center'>
@@ -646,6 +702,7 @@ export default function InspectorPage() {
                       setSearchTerm("");
                       setFilterStatus("all");
                       setCurrentPage(1);
+                      setOpenActionMenuId(null);
                     }}
                     className='mt-2 text-sm text-teal-600 hover:text-teal-800'>
                     Clear filters
@@ -654,82 +711,66 @@ export default function InspectorPage() {
               </div>
             ) : (
               <div className='divide-y divide-gray-200'>
-                {paginatedInspectors.map((inspector) => {
-                  const action = getActionButton(inspector);
-                  const isLoading = actionLoading[inspector._id];
-
-                  return (
-                    <div key={inspector._id} className='p-4 hover:bg-gray-50'>
-                      <div className='flex justify-between items-start mb-3'>
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center'>
-                            <User size={18} className='text-gray-600' />
-                          </div>
-                          <div>
-                            <h3 className='font-medium text-gray-800'>
-                              {inspector.firstName} {inspector.lastName}
-                            </h3>
-                            <p className='text-sm text-gray-600'>
-                              {inspector.email}
-                            </p>
-                          </div>
+                {paginatedInspectors.map((inspector) => (
+                  <div key={inspector._id} className='p-4 hover:bg-gray-50'>
+                    <div className='flex justify-between items-start mb-3'>
+                      <div className='flex items-center space-x-3'>
+                        <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center'>
+                          <User size={18} className='text-gray-600' />
                         </div>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            !inspector.isApproved
-                              ? "bg-yellow-100 text-yellow-800"
-                              : inspector.isSuspended
-                                ? "bg-red-100 text-red-800"
-                                : "bg-green-100 text-green-800"
-                          }`}>
+                        <div>
+                          <h3 className='font-medium text-gray-800'>
+                            {inspector.firstName} {inspector.lastName}
+                          </h3>
+                          <p className='text-sm text-gray-600'>
+                            {inspector.email}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          !inspector.isApproved
+                            ? "bg-yellow-100 text-yellow-800"
+                            : inspector.isSuspended
+                              ? "bg-red-100 text-red-800"
+                              : "bg-green-100 text-green-800"
+                        }`}>
+                        {!inspector.isApproved
+                          ? "Pending"
+                          : inspector.isSuspended
+                            ? "Suspended"
+                            : "Active"}
+                      </span>
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-4 mb-4'>
+                      <div>
+                        <p className='text-xs text-gray-500 mb-1'>User ID</p>
+                        <p className='text-sm font-medium text-gray-800'>
+                          {inspector.userId}
+                        </p>
+                      </div>
+                      <div>
+                        <p className='text-xs text-gray-500 mb-1'>Status</p>
+                        <p className='text-sm font-medium text-gray-800'>
                           {!inspector.isApproved
-                            ? "Pending"
+                            ? "Pending Approval"
                             : inspector.isSuspended
                               ? "Suspended"
                               : "Active"}
-                        </span>
+                        </p>
                       </div>
-
-                      <div className='grid grid-cols-2 gap-4 mb-4'>
-                        <div>
-                          <p className='text-xs text-gray-500 mb-1'>User ID</p>
-                          <p className='text-sm font-medium text-gray-800'>
-                            {inspector.userId}
-                          </p>
-                        </div>
-                        <div>
-                          <p className='text-xs text-gray-500 mb-1'>Status</p>
-                          <p className='text-sm font-medium text-gray-800'>
-                            {!inspector.isApproved
-                              ? "Pending Approval"
-                              : inspector.isSuspended
-                                ? "Suspended"
-                                : "Active"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={action.onClick}
-                        disabled={isLoading}
-                        className={`w-full px-4 py-2 text-sm flex justify-center gap-x-2 items-center rounded-lg transition-colors ${action.color} disabled:opacity-50 disabled:cursor-not-allowed`}>
-                        {isLoading ? (
-                          <Loader2 className='animate-spin h-4 w-4' />
-                        ) : (
-                          <>
-                            {action.icon}
-                            {action.text}
-                          </>
-                        )}
-                      </button>
                     </div>
-                  );
-                })}
+
+                    <div className='flex justify-end'>
+                      {renderActionDropdown(inspector)}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Pagination */}
           {filteredInspectors.length > 0 && totalPages > 1 && (
             <div className='border-t border-gray-200 px-4 md:px-6 py-4'>
               <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
@@ -742,7 +783,6 @@ export default function InspectorPage() {
                 </div>
 
                 <div className='flex items-center space-x-4'>
-                  {/* Previous Button */}
                   <button
                     onClick={() =>
                       setCurrentPage((prev) => Math.max(1, prev - 1))
@@ -753,7 +793,6 @@ export default function InspectorPage() {
                     <span className='hidden sm:inline'>Previous</span>
                   </button>
 
-                  {/* Page Numbers */}
                   <div className='flex items-center space-x-1'>
                     {getPageNumbers().map((page, index) =>
                       page === "..." ? (
@@ -777,7 +816,6 @@ export default function InspectorPage() {
                     )}
                   </div>
 
-                  {/* Next Button */}
                   <button
                     onClick={() =>
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
