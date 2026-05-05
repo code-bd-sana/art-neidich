@@ -82,3 +82,32 @@ export async function updateUserStatus(userId, action) {
     throw error;
   }
 }
+
+/* ======================
+   Delete User
+   DELETE /api/v1/user/:id
+   Private Api
+====================== */
+export async function deleteUser(userId) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const resp = await apiFetch(`/user/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+    });
+
+    return resp;
+  } catch (error) {
+    console.error("Delete user error:", error);
+    throw error;
+  }
+}

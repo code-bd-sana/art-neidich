@@ -43,7 +43,7 @@ export default function Labels() {
         setError(null);
 
         // Fetch with page parameter
-        const response = await getLabels(page, 20, search);
+        const response = await getLabels(page, 50, search);
 
         if (response.success) {
           if (loadMore) {
