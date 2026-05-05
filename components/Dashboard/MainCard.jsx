@@ -610,7 +610,7 @@ const MainCard = () => {
                           <button
                             onClick={() => handleDeleteClick(inspection)}
                             disabled={deletingJobId === inspection.id}
-                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60'>
+                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60 cursor-pointer'>
                             {deletingJobId === inspection.id ? (
                               <Loader2 size={18} className='animate-spin' />
                             ) : (
