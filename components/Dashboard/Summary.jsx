@@ -1,106 +1,140 @@
-"use client"
+"use client";
 
-import { useState } from 'react';
-import { Calendar, Phone, Mail, MapPin, User, FileText, Building } from 'lucide-react';
+import { useState } from "react";
+import {
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
+  User,
+  FileText,
+  Building,
+  Pencil,
+} from "lucide-react";
+import EditJobModal from "./EditJobModal";
 
-export default function Summary({ jobData }) {
+export default function Summary({ jobData, onUpdated }) {
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
+      <div className='flex items-center justify-between gap-4'>
+        <div>
+          <p className='text-xs font-semibold uppercase tracking-[0.2em] text-teal-600'>
+            Inspection Summary
+          </p>
+          <h2 className='mt-1 text-2xl font-semibold text-gray-900'>
+            Job Overview
+          </h2>
+        </div>
+
+        <button
+          type='button'
+          onClick={() => setShowEditModal(true)}
+          className='inline-flex items-center gap-2 rounded-lg bg-[#2D8D7C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#196e5f] cursor-pointer'>
+          <Pencil size={16} />
+          Edit Details
+        </button>
+      </div>
+
       {/* Mobile Stats Cards */}
-      <div className="md:hidden grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-600 mb-1">Order ID</p>
-          <p className="text-sm font-semibold text-gray-800 truncate">
-            {jobData.orderId || 'N/A'}
+      <div className='md:hidden grid grid-cols-2 gap-3 mb-4'>
+        <div className='bg-gray-50 rounded-lg p-3'>
+          <p className='text-xs text-gray-600 mb-1'>Order ID</p>
+          <p className='text-sm font-semibold text-gray-800 truncate'>
+            {jobData.orderId || "N/A"}
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-600 mb-1">Status</p>
-          <p className="text-sm font-semibold text-gray-800">
-            {jobData.feeStatus || 'N/A'}
+        <div className='bg-gray-50 rounded-lg p-3'>
+          <p className='text-xs text-gray-600 mb-1'>Status</p>
+          <p className='text-sm font-semibold text-gray-800'>
+            {jobData.feeStatus || "N/A"}
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-600 mb-1">Fee</p>
-          <p className="text-sm font-semibold text-gray-800">
-            ${jobData.agreedFee || '0'}
+        <div className='bg-gray-50 rounded-lg p-3'>
+          <p className='text-xs text-gray-600 mb-1'>Fee</p>
+          <p className='text-sm font-semibold text-gray-800'>
+            ${jobData.agreedFee || "0"}
           </p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-600 mb-1">Due Date</p>
-          <p className="text-sm font-semibold text-gray-800">
+        <div className='bg-gray-50 rounded-lg p-3'>
+          <p className='text-xs text-gray-600 mb-1'>Due Date</p>
+          <p className='text-sm font-semibold text-gray-800'>
             {formatDate(jobData.dueDate)}
           </p>
         </div>
       </div>
 
       {/* Inspection Details */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900 pb-2 border-b border-gray-200">
+      <div className='space-y-4'>
+        <h2 className='text-lg font-semibold text-gray-900 pb-2 border-b border-gray-200'>
           Inspection Details
         </h2>
-        
-        <div className="space-y-3">
-          <DetailRowMobile 
-            label="Inspector" 
-            value={`${jobData.inspector?.firstName || ''} ${jobData.inspector?.lastName || ''}`.trim() || 'Unassigned'}
+
+        <div className='space-y-3'>
+          <DetailRowMobile
+            label='Inspector'
+            value={
+              `${jobData.inspector?.firstName || ""} ${jobData.inspector?.lastName || ""}`.trim() ||
+              "Unassigned"
+            }
             icon={<User size={16} />}
           />
-          <DetailRowMobile 
-            label="FHA Case Details" 
-            value={jobData.fhaCaseDetailsNo || 'N/A'}
+          <DetailRowMobile
+            label='FHA Case Details'
+            value={jobData.fhaCaseDetailsNo || "N/A"}
             icon={<FileText size={16} />}
           />
-          <DetailRowMobile 
-            label="Order ID" 
-            value={jobData.orderId || 'N/A'}
+          <DetailRowMobile
+            label='Order ID'
+            value={jobData.orderId || "N/A"}
             icon={<FileText size={16} />}
           />
-          <DetailRowMobile 
-            label="Form Type" 
-            value={jobData.formType || 'N/A'}
+          <DetailRowMobile
+            label='Form Type'
+            value={jobData.formType || "N/A"}
             icon={<FileText size={16} />}
           />
-          <DetailRowMobile 
-            label="Fee Status" 
-            value={jobData.feeStatus || 'N/A'}
+          <DetailRowMobile
+            label='Fee Status'
+            value={jobData.feeStatus || "N/A"}
             icon={<FileText size={16} />}
           />
-          <DetailRowMobile 
-            label="Agreed Fee" 
-            value={`$${jobData.agreedFee || '0'}`}
+          <DetailRowMobile
+            label='Agreed Fee'
+            value={`$${jobData.agreedFee || "0"}`}
             icon={<FileText size={16} />}
           />
         </div>
 
         {/* Address Section - Mobile Full Width */}
-        <div className="md:hidden bg-gray-50 rounded-lg p-4 mt-4">
-          <div className="flex items-start gap-3 mb-2">
-            <MapPin className="text-gray-400 mt-0.5" size={16} />
+        <div className='md:hidden bg-gray-50 rounded-lg p-4 mt-4'>
+          <div className='flex items-start gap-3 mb-2'>
+            <MapPin className='text-gray-400 mt-0.5' size={16} />
             <div>
-              <p className="text-xs text-gray-600 mb-1">Address</p>
-              <p className="text-sm font-medium text-gray-900">
-                {jobData.streetAddress || 'Address not available'}
+              <p className='text-xs text-gray-600 mb-1'>Address</p>
+              <p className='text-sm font-medium text-gray-900'>
+                {jobData.streetAddress || "Address not available"}
               </p>
             </div>
           </div>
-          
+
           {jobData.developmentName && (
-            <div className="flex items-center gap-3 mt-3">
-              <Building className="text-gray-400" size={16} />
+            <div className='flex items-center gap-3 mt-3'>
+              <Building className='text-gray-400' size={16} />
               <div>
-                <p className="text-xs text-gray-600 mb-1">Development</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className='text-xs text-gray-600 mb-1'>Development</p>
+                <p className='text-sm font-medium text-gray-900'>
                   {jobData.developmentName}
                 </p>
               </div>
@@ -109,38 +143,38 @@ export default function Summary({ jobData }) {
         </div>
 
         {/* Desktop Address Row */}
-        <div className="hidden md:block">
-          <DetailRow 
-            label="Street Address" 
-            value={jobData.streetAddress || 'Address not available'}
+        <div className='hidden md:block'>
+          <DetailRow
+            label='Street Address'
+            value={jobData.streetAddress || "Address not available"}
           />
-          <DetailRow 
-            label="Development" 
-            value={jobData.developmentName || 'N/A'}
+          <DetailRow
+            label='Development'
+            value={jobData.developmentName || "N/A"}
           />
         </div>
       </div>
 
       {/* Submission Details */}
-      <div className="pt-4 border-t border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className='pt-4 border-t border-gray-200'>
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>
           Submission Details
         </h2>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Calendar className="text-gray-400" size={16} />
+        <div className='space-y-3'>
+          <div className='flex items-center gap-3'>
+            <Calendar className='text-gray-400' size={16} />
             <div>
-              <p className="text-xs text-gray-600">Created Date</p>
-              <p className="text-sm font-medium text-teal-600">
+              <p className='text-xs text-gray-600'>Created Date</p>
+              <p className='text-sm font-medium text-teal-600'>
                 {formatDate(jobData.createdAt)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Calendar className="text-gray-400" size={16} />
+          <div className='flex items-center gap-3'>
+            <Calendar className='text-gray-400' size={16} />
             <div>
-              <p className="text-xs text-gray-600">Due Date</p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className='text-xs text-gray-600'>Due Date</p>
+              <p className='text-sm font-medium text-gray-900'>
                 {formatDate(jobData.dueDate)}
               </p>
             </div>
@@ -149,42 +183,42 @@ export default function Summary({ jobData }) {
       </div>
 
       {/* Site Contact Information */}
-      <div className="pt-4 border-t border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className='pt-4 border-t border-gray-200'>
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>
           Site Contact Information
         </h2>
-        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-          <div className="inline-block bg-teal-600 text-white text-xs px-3 py-1 rounded-full">
-            {jobData.siteContactEmail || 'No email provided'}
+        <div className='bg-gray-50 rounded-lg p-4 space-y-4'>
+          <div className='inline-block bg-teal-600 text-white text-xs px-3 py-1 rounded-full'>
+            {jobData.siteContactEmail || "No email provided"}
           </div>
-          
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <User className="text-gray-400" size={16} />
+
+          <div className='space-y-3'>
+            <div className='flex items-center gap-3'>
+              <User className='text-gray-400' size={16} />
               <div>
-                <p className="text-xs text-gray-600">Site Contact Name</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {jobData.siteContactName || 'N/A'}
+                <p className='text-xs text-gray-600'>Site Contact Name</p>
+                <p className='text-sm font-medium text-gray-900'>
+                  {jobData.siteContactName || "N/A"}
                 </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <Phone className="text-gray-400" size={16} />
+
+            <div className='flex items-center gap-3'>
+              <Phone className='text-gray-400' size={16} />
               <div>
-                <p className="text-xs text-gray-600">Site Contact Phone</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {jobData.siteContactPhone || 'N/A'}
+                <p className='text-xs text-gray-600'>Site Contact Phone</p>
+                <p className='text-sm font-medium text-gray-900'>
+                  {jobData.siteContactPhone || "N/A"}
                 </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <Mail className="text-gray-400" size={16} />
+
+            <div className='flex items-center gap-3'>
+              <Mail className='text-gray-400' size={16} />
               <div>
-                <p className="text-xs text-gray-600">Site Contact Email</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {jobData.siteContactEmail || 'N/A'}
+                <p className='text-xs text-gray-600'>Site Contact Email</p>
+                <p className='text-sm font-medium text-gray-900'>
+                  {jobData.siteContactEmail || "N/A"}
                 </p>
               </div>
             </div>
@@ -193,25 +227,31 @@ export default function Summary({ jobData }) {
       </div>
 
       {/* Created By Information */}
-      <div className="pt-4 border-t border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Created By
-        </h2>
-        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-          <DetailRow 
-            label="Created By" 
-            value={`${jobData.createdBy?.firstName || ''} ${jobData.createdBy?.lastName || ''}`.trim() || 'Unknown'}
+      <div className='pt-4 border-t border-gray-200'>
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>Created By</h2>
+        <div className='bg-gray-50 rounded-lg p-4 space-y-3'>
+          <DetailRow
+            label='Created By'
+            value={
+              `${jobData.createdBy?.firstName || ""} ${jobData.createdBy?.lastName || ""}`.trim() ||
+              "Unknown"
+            }
           />
-          <DetailRow 
-            label="Role" 
-            value={jobData.createdBy?.role || 'Unknown'}
+          <DetailRow
+            label='Role'
+            value={jobData.createdBy?.role || "Unknown"}
           />
-          <DetailRow 
-            label="Email" 
-            value={jobData.createdBy?.email || 'N/A'}
-          />
+          <DetailRow label='Email' value={jobData.createdBy?.email || "N/A"} />
         </div>
       </div>
+
+      {showEditModal && (
+        <EditJobModal
+          jobData={jobData}
+          onClose={() => setShowEditModal(false)}
+          onUpdated={onUpdated}
+        />
+      )}
     </div>
   );
 }
@@ -219,10 +259,10 @@ export default function Summary({ jobData }) {
 // Desktop Detail Row
 function DetailRow({ label, value }) {
   return (
-    <div className="flex items-start gap-2 py-2">
-      <span className="text-sm text-gray-600 min-w-[180px]">{label}</span>
-      <span className="text-sm text-gray-400">:</span>
-      <span className="text-sm text-gray-900 flex-1">{value}</span>
+    <div className='flex items-start gap-2 py-2'>
+      <span className='text-sm text-gray-600 min-w-[180px]'>{label}</span>
+      <span className='text-sm text-gray-400'>:</span>
+      <span className='text-sm text-gray-900 flex-1'>{value}</span>
     </div>
   );
 }
@@ -230,14 +270,12 @@ function DetailRow({ label, value }) {
 // Mobile Detail Row
 function DetailRowMobile({ label, value, icon }) {
   return (
-    <div className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="text-gray-400">
-          {icon}
-        </div>
-        <span className="text-sm text-gray-600">{label}</span>
+    <div className='flex items-start justify-between py-2 border-b border-gray-100 last:border-0'>
+      <div className='flex items-center gap-3'>
+        <div className='text-gray-400'>{icon}</div>
+        <span className='text-sm text-gray-600'>{label}</span>
       </div>
-      <span className="text-sm font-medium text-gray-900 text-right max-w-[60%] truncate">
+      <span className='text-sm font-medium text-gray-900 text-right max-w-[60%] truncate'>
         {value}
       </span>
     </div>
