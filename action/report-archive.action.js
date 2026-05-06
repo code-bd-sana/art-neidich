@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "../lib/fetcher";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Get Archived Reports
@@ -17,7 +18,7 @@ export async function getArchivedReports(page = 1, limit = 10, search = "") {
     return resp;
   } catch (error) {
     console.error("Get archived reports error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load archived reports.");
   }
 }
 
@@ -34,7 +35,7 @@ export async function restoreArchivedReports(reportIds) {
     return resp;
   } catch (error) {
     console.error("Restore archived reports error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to restore archived reports.");
   }
 }
 
@@ -51,6 +52,9 @@ export async function permanentlyDeleteArchivedReports(reportIds) {
     return resp;
   } catch (error) {
     console.error("Permanently delete archived reports error:", error);
-    throw error;
+    return normalizeActionError(
+      error,
+      "Failed to permanently delete archived reports.",
+    );
   }
 }

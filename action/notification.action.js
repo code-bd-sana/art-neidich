@@ -3,6 +3,7 @@
 
 import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Notifications
@@ -30,6 +31,6 @@ export async function getNotifications() {
     return resp;
   } catch (error) {
     console.error("Get notifications error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load notifications.");
   }
 }

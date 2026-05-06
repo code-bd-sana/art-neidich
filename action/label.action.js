@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "../lib/fetcher";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Update Label
@@ -17,7 +18,7 @@ export async function updateLabel(labelId, labelName) {
     return resp;
   } catch (error) {
     console.error("Update label error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to update label.");
   }
 }
 
@@ -35,7 +36,7 @@ export async function createLabel(labelName) {
     return resp;
   } catch (error) {
     console.error("Create label error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to create label.");
   }
 }
 
@@ -52,7 +53,7 @@ export async function deleteLabel(labelId) {
     return resp;
   } catch (error) {
     console.error("Delete label error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to delete label.");
   }
 }
 
@@ -74,6 +75,6 @@ export async function getLabels(page = 1, limit = 20, search = "") {
     return resp;
   } catch (error) {
     console.error("Get labels error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load labels.");
   }
 }
