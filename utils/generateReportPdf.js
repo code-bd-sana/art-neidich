@@ -11,10 +11,28 @@ import {
 } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 
-// Images
 const HEADER_IMAGE_URL = "/header.png";
-const FOOTER_LEFT_IMAGE_URL = "/footer.png";
-const FOOTER_RIGHT_IMAGE_URL = "/footer.png";
+const FOOTER_LEFT_IMAGE_URL = "/footer_left.png";
+const FOOTER_RIGHT_IMAGE_URL = "/footer_right.png";
+const IMAGE_PROXY_ROUTE = "/api/image-proxy";
+
+const getRenderableImageUrl = (url) => {
+  if (!url) return null;
+
+  if (
+    url.startsWith("data:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("/")
+  ) {
+    return url;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return `${IMAGE_PROXY_ROUTE}?url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
+};
 
 const styles = StyleSheet.create({
   page: {
@@ -61,6 +79,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#EFEFF1",
     paddingTop: 10,
+    paddingHorizontal: 15,
   },
   infoRow: {
     flexDirection: "row",
@@ -68,33 +87,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
     fontSize: 10,
+    width: "100%",
   },
   infoLeft: {
     flexDirection: "row",
-    width: "56%",
     alignItems: "center",
     justifyContent: "flex-start",
-    marginLeft: 15,
+    flexShrink: 0,
   },
   infoRight: {
     flexDirection: "row",
-    width: "40%",
     alignItems: "center",
     justifyContent: "flex-end",
+    flexShrink: 0,
+    marginLeft: 16,
   },
   label: {
+    fontWeight: "semibold",
+    marginRight: 7,
+    color: "#222325",
+  },
+  value: {
+    flexShrink: 0,
+  },
+  subjectSection: {
+    flexDirection: "row",
+    alignItems: "start",
+    width: "100%",
+    marginBottom: 2,
+  },
+  subjectLabel: {
+    fontSize: 10,
     fontWeight: "semibold",
     marginRight: 4,
     color: "#222325",
   },
-  value: {
+  subjectValue: {
+    fontSize: 10,
+    marginTop: 0,
     flex: 1,
-    color: "#5D5656",
+    flexShrink: 1,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: "semibold",
-    marginTop: 10,
+    fontSize: 14,
+    fontWeight: "bold",
     marginBottom: 10,
     color: "#323539",
     textAlign: "center",
@@ -109,10 +145,10 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   imageContainer: {
-    width: "48%",
+    width: "70%",
   },
   imageSingle: {
-    width: "48%",
+    width: "70%",
     alignSelf: "center",
   },
   image: {
@@ -168,6 +204,105 @@ const cleanImageUrl = (url) => {
   return url.split("?")[0];
 };
 
+const formatInspectionDate = (value) => {
+  if (!value) {
+    const today = new Date();
+    return `${today.getMonth() + 1}-${today.getDate()}-${today.getFullYear()}`;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return `${value.getMonth() + 1}-${value.getDate()}-${value.getFullYear()}`;
+  }
+
+  const rawValue = String(value).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(rawValue)) {
+    const [year, month, day] = rawValue.slice(0, 10).split("-").map(Number);
+    return `${month}-${day}-${year}`;
+  }
+
+  const normalizedValue = rawValue.replace(/\//g, "-");
+
+  const match = normalizedValue.match(
+    /^(\d{1,4})-(\d{1,2})-(\d{1,4})(?:\s.*)?$/,
+  );
+
+  if (match) {
+    const first = Number(match[1]);
+    const second = Number(match[2]);
+    const third = Number(match[3]);
+
+    let month = first;
+    let day = second;
+    let year = third;
+
+    if (match[1].length === 4) {
+      year = first;
+      month = second;
+      day = third;
+    } else if (match[3].length === 4) {
+      month = first;
+      day = second;
+      year = third;
+    }
+
+    return `${month}-${day}-${year}`;
+  }
+
+  const parsedDate = new Date(rawValue);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    return `${parsedDate.getMonth() + 1}-${parsedDate.getDate()}-${parsedDate.getFullYear()}`;
+  }
+
+  return rawValue;
+};
+
+const fetchImageAsDataUrl = async (url) => {
+  const response = await fetch(getRenderableImageUrl(url), {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load image: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const image = new window.Image();
+      image.onload = () => {
+        const maxSide = 1400;
+        const scale = Math.min(
+          1,
+          maxSide / image.naturalWidth,
+          maxSide / image.naturalHeight,
+        );
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Failed to get canvas context"));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      };
+
+      image.onerror = () =>
+        reject(new Error("Failed to decode image for resizing"));
+      image.src = reader.result;
+    };
+    reader.onerror = () =>
+      reject(new Error("Failed to convert image to data URL"));
+    reader.readAsDataURL(blob);
+  });
+};
+
 // Header Component - appear on every page
 const Header = ({ jobData }) => (
   <View style={styles.headerContainer} fixed>
@@ -187,9 +322,7 @@ const Header = ({ jobData }) => (
       A division of Lone Star Building Inspection, Inc.
     </Text>
     {/* <Text style={styles.mainTitle}>Inspection report</Text> */}
-    <Text style={styles.attachmentText}>
-      Attachment to FHA form # {jobData?.fhaCaseDetailsNo || "92051"}
-    </Text>
+    <Text style={styles.attachmentText}>Attachment to FHA Form 92051</Text>
   </View>
 );
 
@@ -198,75 +331,77 @@ const Footer = () => (
   <View style={styles.footer} fixed>
     <Image src={FOOTER_LEFT_IMAGE_URL} alt='Img' style={styles.footerImage} />
     <Text style={styles.footerText}>
-      All Utilities Are On And Tested Unless Otherwise Noted{"\n"}
-      TREC Lic. # 10546 | TSBPE Lic. # I-3836 | Code Enforcement Lic. # 7055 |
-      HUD-FHA Fee Reg.# D683 & 203K – D0931
+      All utilities are on and tested unless otherwise noted{"\n"}
+      Properties without working utilities do not qualify for compliance{"\n"}
+      TREC Lic. # 10546 | TSBPE Lic. # 3836 | Code Enforcement Lic. # 7055 |
+      HUD-FHA Fee Reg.# D683 & 203K – D0931{"\n"}
+      ICC Certified Residential Combination Inspector
     </Text>
     <Image src={FOOTER_RIGHT_IMAGE_URL} alt='Img' style={styles.footerImage} />
   </View>
 );
 
-const convertToPngBase64 = async (url) => {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    img.crossOrigin = "anonymous";
+// Section with report info - appear on every page
+const ReportHeaderInfo = ({ jobData }) => (
+  <View style={styles.infoSection}>
+    <View style={styles.infoRow}>
+      <View style={styles.infoLeft}>
+        <Text style={styles.label}>Date of Inspection:</Text>
+        <Text style={styles.label}>
+          {formatInspectionDate(jobData?.createdAt || jobData?.inspectionDate)}
+        </Text>
+      </View>
+      <View style={styles.infoRight}>
+        <Text style={[styles.label, { marginLeft: 20 }]}>FHA Case #</Text>
+        <Text
+          style={[styles.value, { fontWeight: "semibold", color: "#222325" }]}>
+          {jobData?.fhaCaseDetailsNo || jobData?.caseNumber || "N/A"}
+        </Text>
+      </View>
+    </View>
+    <View style={styles.infoRow}>
+      <View style={styles.infoLeft}>
+        <Text style={styles.label}>Type of Inspection:</Text>
+        <Text style={styles.value}>
+          {jobData?.formType || "92051 - FHA Inspection"}
+        </Text>
+      </View>
+      <View style={styles.infoRight}>
+        <Text></Text>
+      </View>
+    </View>
+    <View style={styles.subjectSection}>
+      <Text style={styles.subjectLabel}>Subject Property:</Text>
+      <Text style={styles.subjectValue}>{jobData?.streetAddress || "N/A"}</Text>
+    </View>
+  </View>
+);
 
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Failed to get canvas context"));
-        return;
-      }
-      ctx.drawImage(img, 0, 0);
-      const base64 = canvas.toDataURL("image/png"); // or "image/jpeg", 0.85
-      resolve(base64);
-    };
-
-    img.onerror = (err) => {
-      console.error("Image load failed:", url, err);
-      reject(err);
-    };
-
-    img.src = url;
-  });
-};
-
+// Main function to generate PDF
 export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
   console.log("Original imagesByLabel:", imagesByLabel);
 
-  const processedByLabel = {};
+  const processedEntries = await Promise.all(
+    Object.entries(imagesByLabel).map(async ([label, images]) => {
+      const processedImages = await Promise.all(
+        images.map(async (img) => {
+          if (!img?.url) return img;
 
-  for (const [label, images] of Object.entries(imagesByLabel)) {
-    processedByLabel[label] = await Promise.all(
-      images.map(async (img) => {
-        if (!img?.url) return img;
-
-        const cleanUrl = cleanImageUrl(img.url);
-        const ext =
-          (img.mimeType?.split("/")[1] || "").toLowerCase() ||
-          cleanUrl.split(".").pop()?.split("?")[0]?.toLowerCase() ||
-          "";
-
-        if (ext === "webp") {
           try {
-            const base64 = await convertToPngBase64(cleanUrl);
-            console.log(`Converted ${img.fileName} to PNG base64`);
-            return { ...img, url: base64 };
+            const dataUrl = await fetchImageAsDataUrl(img.url);
+            return { ...img, url: dataUrl };
           } catch (err) {
-            console.warn(`WebP conversion failed for ${img.fileName}:`, err);
+            console.warn(`Image conversion failed for ${img.fileName}:`, err);
             return { ...img, url: null };
           }
-        }
+        }),
+      );
 
-        return { ...img, url: cleanUrl };
-      }),
-    );
-  }
+      return [label, processedImages];
+    }),
+  );
 
-  console.log("Processed imagesByLabel:", processedByLabel);
+  const processedByLabel = Object.fromEntries(processedEntries);
 
   const sections = Object.entries(processedByLabel);
 
@@ -275,60 +410,18 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
 
   const blob = await pdf(
     <Document>
-      {/* Page 1 - with Info Section */}
+      {/* Page 1 */}
       <Page size='A4' style={styles.page}>
         {/* Header on every page */}
         <Header jobData={jobData} />
 
-        {/* Info Section - Only on first page */}
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.label}>Date of Inspection:</Text>
-              <Text style={styles.label}>
-                {jobData?.inspectionDate || new Date().toLocaleDateString()}
-              </Text>
-            </View>
-            <View style={styles.infoRight}>
-              <Text style={[styles.label, { marginLeft: 20 }]}>CASE #</Text>
-              <Text
-                style={[
-                  styles.value,
-                  { fontWeight: "semibold", color: "#222325" },
-                ]}>
-                {jobData?.fhaCaseDetailsNo || jobData?.caseNumber || "N/A"}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.label}>Type of Inspection:</Text>
-              <Text style={styles.value}>
-                {jobData?.formType || "HUD-FHA 92051 Compliance - FINAL"}
-              </Text>
-            </View>
-            <View style={styles.infoRight}>
-              <Text></Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <Text style={styles.label}>Subject Property:</Text>
-              <Text style={styles.label}>
-                {jobData?.streetAddress || "N/A"},{" "}
-                {jobData?.developmentName || ""}
-              </Text>
-            </View>
-            <View style={styles.infoRight}>
-              <Text></Text>
-            </View>
-          </View>
-        </View>
+        <ReportHeaderInfo jobData={jobData} />
 
         {/* Dynamic sections for first page */}
         {sections.slice(0, sectionsPerPage).map(([label, images], index) => (
           <View key={`section-${label}-${index}`} wrap={false}>
             <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>{label}</Text>
               {images.length === 1 ? (
                 <View style={styles.imageSingle}>
                   {images[0]?.url ? (
@@ -374,8 +467,6 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                   ))}
                 </View>
               )}
-
-              <Text style={styles.sectionTitle}>{label}</Text>
             </View>
           </View>
         ))}
@@ -406,15 +497,18 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
             {/* Header on every page */}
             <Header jobData={jobData} />
 
+            <ReportHeaderInfo jobData={jobData} />
+
             {/* Dynamic sections for this page */}
             {pageSections.map(([label, images], index) => (
               <View key={`section-${label}-${startIndex + index}`} wrap={false}>
                 <View style={styles.sectionContainer}>
+                  <Text style={styles.sectionTitle}>{label}</Text>
                   {images.length === 1 ? (
                     <View style={styles.imageSingle}>
                       {images[0]?.url ? (
                         <Image
-                          src={cleanImageUrl(images[0].url)}
+                          src={images[0].url}
                           alt='Img'
                           style={styles.image}
                         />
@@ -437,7 +531,7 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                           style={styles.imageContainer}>
                           {img.url ? (
                             <Image
-                              src={cleanImageUrl(img.url)}
+                              src={img.url}
                               alt='Img'
                               style={styles.image}
                             />
@@ -455,8 +549,6 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                       ))}
                     </View>
                   )}
-
-                  <Text style={styles.sectionTitle}>{label}</Text>
                 </View>
               </View>
             ))}
