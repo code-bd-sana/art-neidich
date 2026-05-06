@@ -2,6 +2,7 @@
 
 import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Get all Users
@@ -32,7 +33,7 @@ export async function getUsers(page = 1, limit = 10, search = "", role = "") {
     return resp;
   } catch (error) {
     console.error("Get users error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load users.");
   }
 }
 /* ======================
@@ -79,7 +80,7 @@ export async function updateUserStatus(userId, action) {
     return resp;
   } catch (error) {
     console.error("Update user status error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to update user status.");
   }
 }
 
@@ -108,6 +109,6 @@ export async function deleteUser(userId) {
     return resp;
   } catch (error) {
     console.error("Delete user error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to delete user.");
   }
 }

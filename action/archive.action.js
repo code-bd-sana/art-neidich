@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "../lib/fetcher";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Get Archive Settings
@@ -15,7 +16,7 @@ export async function getArchiveSettings() {
     return resp;
   } catch (error) {
     console.error("Get archive settings error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load archive settings.");
   }
 }
 
@@ -33,6 +34,6 @@ export async function updateArchiveSettings(autoArchiveDays) {
     return resp;
   } catch (error) {
     console.error("Update archive settings error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to update archive settings.");
   }
 }
