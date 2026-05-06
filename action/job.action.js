@@ -34,7 +34,7 @@ export async function getJobs(page, limit, search = "", status = "all") {
     return resp;
   } catch (error) {
     console.error("Get jobs error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load jobs.");
   }
 }
 /* ======================
@@ -92,7 +92,7 @@ export async function getJobById(id) {
     return resp;
   } catch (error) {
     console.error("Get jobs error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load job details.");
   }
 }
 

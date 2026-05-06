@@ -2,6 +2,7 @@
 
 import { apiFetch } from "../lib/fetcher";
 import { cookies } from "next/headers";
+import { normalizeActionError } from "../lib/error-utils";
 
 /* ======================
    Report
@@ -28,7 +29,7 @@ export async function getReportById(id) {
     return resp;
   } catch (error) {
     console.error("Get report error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to load report.");
   }
 }
 
@@ -59,6 +60,6 @@ export async function updateReportStatus(id, status) {
     return resp;
   } catch (error) {
     console.error("Report status update error:", error);
-    throw error;
+    return normalizeActionError(error, "Failed to update report status.");
   }
 }
