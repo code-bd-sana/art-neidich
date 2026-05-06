@@ -568,5 +568,10 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
     </Document>,
   ).toBlob();
 
-  saveAs(blob, "inspection_report.pdf");
+  const fileName = (jobData?.streetAddress || "Inspection_Report")
+    .replace(/[\s,]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  saveAs(blob, `${fileName || "Inspection_Report"}.pdf`);
 };
