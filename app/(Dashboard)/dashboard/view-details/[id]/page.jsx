@@ -170,7 +170,9 @@ export default function ViewDetailsPage() {
 
         {/* Content */}
         <div className='p-4 md:p-8'>
-          {activeTab === "summary" && <Summary jobData={jobData} />}
+          {activeTab === "summary" && (
+            <Summary jobData={jobData} onUpdated={setJobData} />
+          )}
           {activeTab === "photos" && <Photos jobData={jobData} />}
           {activeTab === "emailLog" && <EmailLog jobData={jobData} />}
         </div>
