@@ -98,6 +98,36 @@ export async function getJobById(id) {
 
 /* ======================
    Job
+   PUT /api/v1/job/:id
+   Private Api
+====================== */
+export async function updateJob(id, jobData) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token");
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const resp = await apiFetch(`/job/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
+      },
+      body: JSON.stringify(jobData),
+    });
+
+    return resp;
+  } catch (error) {
+    console.error("Update job error:", error);
+    return normalizeActionError(error, "Failed to update the job.");
+  }
+}
+
+/* ======================
+   Job
    DELETE /api/v1/job/:id
    Private Api
 ====================== */

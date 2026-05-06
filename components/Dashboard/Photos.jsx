@@ -14,6 +14,24 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { generateReportPdf } from "../../utils/generateReportPdf";
 
+const getRenderableImageUrl = (url) => {
+  if (!url) return null;
+
+  if (
+    url.startsWith("data:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("/")
+  ) {
+    return url;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
+};
+
 export default function Photos({ jobData }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,6 +41,13 @@ export default function Photos({ jobData }) {
   const [downloadingZip, setDownloadingZip] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
 
+  const sortPhotoGroups = (groups) =>
+    [...groups].sort((groupA, groupB) =>
+      groupA.location.localeCompare(groupB.location, undefined, {
+        sensitivity: "base",
+      }),
+    );
+
   useEffect(() => {
     const fetchReportData = async () => {
       setLoading(true);
@@ -31,7 +56,6 @@ export default function Photos({ jobData }) {
       try {
         if (jobData?.reportId) {
           const data = await getReportById(jobData.reportId);
-          console.log("Report data from API:", data);
 
           if (data.success) {
             setReportData(data.data);
@@ -40,9 +64,40 @@ export default function Photos({ jobData }) {
             const transformedPhotos = [];
 
             if (data.data.images) {
-              data.data.images.forEach((imageGroup) => {
-                if (imageGroup.imageLabel && imageGroup.images) {
-                  // Group images by their individual labels
+              data.data.images.forEach((imageGroup, index) => {
+                // New API shape: { imageLabel, image: {...} }
+                if (imageGroup?.imageLabel && imageGroup?.image) {
+                  const normalizedImage = {
+                    ...imageGroup.image,
+                    imageLabel: imageGroup.imageLabel,
+                    noteForAdmin:
+                      imageGroup.image.noteForAdmin ||
+                      imageGroup.image.notes ||
+                      imageGroup.noteForAdmin ||
+                      "",
+                    url:
+                      imageGroup.image.url ||
+                      imageGroup.image.imageUrl ||
+                      imageGroup.url ||
+                      "",
+                  };
+
+                  if (normalizedImage.url) {
+                    transformedPhotos.push({
+                      id: `${imageGroup.imageLabel}-${index}`,
+                      location: imageGroup.imageLabel,
+                      count: 1,
+                      images: [normalizedImage],
+                    });
+                  }
+                  return;
+                }
+
+                // Legacy shape: { imageLabel, images: [...] }
+                if (
+                  imageGroup?.imageLabel &&
+                  Array.isArray(imageGroup?.images)
+                ) {
                   const groupedByLabel = {};
 
                   imageGroup.images.forEach((img) => {
@@ -57,21 +112,21 @@ export default function Photos({ jobData }) {
                     });
                   });
 
-                  // Create separate entries for each unique label
                   Object.entries(groupedByLabel).forEach(([label, images]) => {
                     transformedPhotos.push({
                       id: `${imageGroup.imageLabel}-${label}`,
                       location: label,
                       count: images.length,
-                      images: images,
+                      images,
                     });
                   });
                 }
               });
             }
 
-            console.log("Transformed photo data:", transformedPhotos);
-            setPhotoData(transformedPhotos);
+            const sortedPhotos = sortPhotoGroups(transformedPhotos);
+
+            setPhotoData(sortedPhotos);
           } else {
             throw new Error(
               extractErrorMessage(data, "Failed to fetch report data."),
@@ -96,6 +151,7 @@ export default function Photos({ jobData }) {
     }
   }, [jobData]);
 
+  console.log("kjsd", reportData);
   // Single image download with loading state
   const downloadSingleImage = async (
     url,
@@ -109,7 +165,9 @@ export default function Photos({ jobData }) {
 
     setDownloadingImage(itemId);
     try {
-      const response = await fetch(url, { mode: "cors" });
+      const response = await fetch(getRenderableImageUrl(url), {
+        mode: "cors",
+      });
       if (!response.ok) {
         throw new Error(
           `Fetch failed: ${response.status} ${response.statusText}`,
@@ -182,7 +240,9 @@ export default function Photos({ jobData }) {
         usedNames.add(uniqueFilename);
 
         try {
-          const response = await fetch(image.url, { mode: "cors" });
+          const response = await fetch(getRenderableImageUrl(image.url), {
+            mode: "cors",
+          });
           if (!response.ok) continue;
           const blob = await response.blob();
           folder.file(uniqueFilename, blob);
@@ -515,6 +575,13 @@ export default function Photos({ jobData }) {
                               alt='Image preview'
                               width={32}
                               height={32}
+                              // If the URL is a signed S3 URL or contains encoded characters
+                              // bypass the Next.js image optimizer to avoid server-side timeouts
+                              unoptimized={
+                                typeof image.url === "string" &&
+                                (image.url.includes("X-Amz-") ||
+                                  image.url.includes("%"))
+                              }
                               className='object-cover w-full h-full'
                             />
                           ) : (
