@@ -45,6 +45,7 @@ const MainCard = () => {
     { value: "submitted", label: "Submitted" },
     { value: "completed", label: "Completed" },
     { value: "rejected", label: "Rejected" },
+    { value: "resubmit", label: "Resubmit" },
   ];
 
   const sortOptions = [
@@ -73,6 +74,8 @@ const MainCard = () => {
       return "bg-green-50 text-green-700";
     } else if (statusLower.includes("reject")) {
       return "bg-red-50 text-red-700";
+    } else if (statusLower.includes("resubmit")) {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
     } else if (statusLower.includes("submit")) {
       return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     } else {
