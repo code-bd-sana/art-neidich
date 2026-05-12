@@ -83,6 +83,23 @@ const MainCard = () => {
     }
   };
 
+  const getDisplayStatusLabel = (status) => {
+    const statusLower = status?.toLowerCase() || "";
+
+    if (statusLower.includes("progress")) return "In Progress";
+    if (statusLower.includes("complete")) return "Completed";
+    if (statusLower.includes("reject")) return "Rejected";
+    if (
+      statusLower.includes("resubmit") ||
+      statusLower.includes("re-submitted")
+    ) {
+      return "Resubmit";
+    }
+    if (statusLower.includes("submit")) return "Submitted";
+
+    return status || "Unknown";
+  };
+
   // Fetch function
   const fetchInspections = useCallback(async () => {
     setLoading(true);
@@ -108,8 +125,12 @@ const MainCard = () => {
           siteContactName: job.siteContactName || "Unassigned",
           dueDate: formatDate(job.dueDate),
           dateSubmitted: formatDate(job.createdAt),
-          reportStatusLabel: job.reportStatusLabel,
-          statusColor: getStatusColor(job.reportStatusLabel),
+          reportStatusLabel: getDisplayStatusLabel(
+            job.reportStatusLabel || job.reportStatus,
+          ),
+          statusColor: getStatusColor(
+            getDisplayStatusLabel(job.reportStatusLabel || job.reportStatus),
+          ),
           rawData: job,
         }));
         console.log("data", data);
@@ -605,10 +626,10 @@ const MainCard = () => {
 
                         <div className='grid grid-cols-2 gap-3'>
                           <Link
-                            href={`/dashboard/view-details/${inspection.id}`}>
-                            <button className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer'>
-                              <Eye size={18} />
-                            </button>
+                            href={`/dashboard/view-details/${inspection.id}`}
+                            className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-teal-700 transition-colors'>
+                            <span className='sr-only'>View details</span>
+                            <Eye size={18} />
                           </Link>
                           <button
                             onClick={() => handleDeleteClick(inspection)}
@@ -695,10 +716,9 @@ const MainCard = () => {
                           <td className='py-3 px-4'>
                             <div className='flex items-center gap-4'>
                               <Link
-                                href={`/dashboard/view-details/${inspection.id}`}>
-                                <button className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer'>
-                                  <Eye size={16} className='mr-2' />
-                                </button>
+                                href={`/dashboard/view-details/${inspection.id}`}
+                                className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer'>
+                                <Eye size={16} className='mr-2' />
                               </Link>
                               <button
                                 onClick={() => handleDeleteClick(inspection)}
