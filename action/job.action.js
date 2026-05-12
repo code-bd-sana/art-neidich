@@ -18,10 +18,16 @@ export async function getJobs(page, limit, search = "", status = "all") {
       throw new Error("No authentication token found");
     }
 
+    // Map frontend filter values to backend status values
+    let backendStatus = status;
+    if (status === "resubmit") {
+      backendStatus = "re-submitted";
+    }
+
     // Construct URL with search parameter
     const url = `/job?page=${page}&limit=${limit}${
       search ? `&search=${encodeURIComponent(search)}` : ""
-    }&status=${status}`;
+    }&status=${backendStatus}`;
 
     const resp = await apiFetch(url, {
       method: "GET",

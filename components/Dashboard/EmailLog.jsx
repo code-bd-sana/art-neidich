@@ -11,9 +11,9 @@ export default function EmailLog({ jobData }) {
   // Get report ID from jobData
   const reportId = jobData?.reportId;
 
-  console.log("reportId from jobData:", reportId);
-  console.log("hasReport:", jobData?.hasReport);
-  console.log("reportStatusLabel:", jobData?.reportStatusLabel);
+  // console.log("reportId from jobData:", reportId);
+  // console.log("hasReport:", jobData?.hasReport);
+  // console.log("reportStatusLabel:", jobData?.reportStatusLabel);
 
   // Get initial status from reportStatusLabel
   const getInitialStatus = useCallback(() => {
@@ -77,6 +77,8 @@ export default function EmailLog({ jobData }) {
       return "bg-green-50 text-green-700 border border-green-200";
     } else if (status.includes("reject")) {
       return "bg-red-50 text-red-700 border border-red-200";
+    } else if (status.includes("resubmit")) {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
     } else if (status.includes("submit")) {
       return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     } else {
@@ -91,6 +93,7 @@ export default function EmailLog({ jobData }) {
     if (label.includes("progress")) return "in_progress";
     if (label.includes("complete")) return "completed";
     if (label.includes("reject")) return "rejected";
+    if (label.includes("resubmit")) return "resubmit";
     if (label.includes("submit")) return "submitted";
 
     return "submitted";
@@ -103,6 +106,7 @@ export default function EmailLog({ jobData }) {
       in_progress: "In Progress",
       completed: "Completed",
       rejected: "Rejected",
+      resubmit: "Resubmit",
     };
     return statusMap[apiStatus] || apiStatus || "Submitted";
   };
@@ -112,6 +116,7 @@ export default function EmailLog({ jobData }) {
     { value: "submitted", label: "Submitted" },
     { value: "completed", label: "Completed" },
     { value: "rejected", label: "Rejected" },
+    { value: "resubmit", label: "Resubmit" },
   ];
 
   // Check if status can be changed
