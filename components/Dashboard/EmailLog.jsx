@@ -323,7 +323,7 @@ export default function EmailLog({ jobData }) {
 function DetailRow({ label, value }) {
   return (
     <div className='flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-3 border-b border-gray-100 last:border-0'>
-      <span className='text-sm text-gray-600 sm:min-w-[140px] md:min-w-40'>
+      <span className='text-sm text-gray-600 sm:min-w-35 md:min-w-40'>
         {label}
       </span>
       <span className='hidden sm:inline text-sm text-gray-400'>:</span>
