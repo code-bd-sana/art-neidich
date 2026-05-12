@@ -119,6 +119,22 @@ export default function EmailLog({ jobData }) {
     { value: "resubmit", label: "Resubmit" },
   ];
 
+  const getAllowedStatusOptions = () => {
+    const current = getApiStatusValue(currentStatus);
+
+    if (current === "submitted" || current === "resubmit") {
+      return statusOptions.filter((option) =>
+        ["completed", "rejected"].includes(option.value),
+      );
+    }
+
+    if (current === "rejected") {
+      return statusOptions.filter((option) => option.value === "completed");
+    }
+
+    return [];
+  };
+
   // Check if status can be changed
   const canChangeStatus = () => {
     // If no report exists (hasReport: false), cannot change status
@@ -126,13 +142,17 @@ export default function EmailLog({ jobData }) {
       return false;
     }
 
-    // Need a report ID to update
-    if (!reportId) {
+    // Completed and In Progress reports are locked
+    if (currentStatus?.toLowerCase().includes("progress")) {
       return false;
     }
 
-    // If current status is "In Progress", cannot change it
-    if (currentStatus?.toLowerCase().includes("progress")) {
+    if (currentStatus?.toLowerCase().includes("complete")) {
+      return false;
+    }
+
+    // Need a report ID to update
+    if (!reportId) {
       return false;
     }
 
@@ -153,15 +173,20 @@ export default function EmailLog({ jobData }) {
         setError("Cannot change status: Report not submitted yet");
       } else if (currentStatus?.toLowerCase().includes("progress")) {
         setError("Cannot change status: Report is still in progress");
+      } else if (currentStatus?.toLowerCase().includes("complete")) {
+        setError("Cannot change status: Report is already completed");
       } else if (!reportId) {
         setError("Cannot change status: No report ID found");
       }
       return;
     }
 
-    // Cannot change back to "in_progress"
-    if (newStatus === "in_progress") {
-      setError("Cannot change back to 'In Progress'");
+    const allowedStatuses = getAllowedStatusOptions().map(
+      (option) => option.value,
+    );
+
+    if (!allowedStatuses.includes(newStatus)) {
+      setError("Cannot change to the selected status");
       return;
     }
 
@@ -263,7 +288,7 @@ export default function EmailLog({ jobData }) {
                           />
                           <div className='absolute z-20 mt-1 w-48 rounded-md bg-white shadow-lg border border-gray-200'>
                             <div className='py-1'>
-                              {statusOptions.map((option) => (
+                              {getAllowedStatusOptions().map((option) => (
                                 <button
                                   key={option.value}
                                   type='button'
@@ -299,9 +324,11 @@ export default function EmailLog({ jobData }) {
                         ? "Report not submitted yet"
                         : currentStatus?.toLowerCase().includes("progress")
                           ? "Report in progress - cannot change status"
-                          : !reportId
-                            ? "No report ID found"
-                            : "Click to change status"}
+                          : currentStatus?.toLowerCase().includes("complete")
+                            ? "Report completed - status is locked"
+                            : !reportId
+                              ? "No report ID found"
+                              : "Click to change status"}
                     </div>
                   </div>
                 </div>
