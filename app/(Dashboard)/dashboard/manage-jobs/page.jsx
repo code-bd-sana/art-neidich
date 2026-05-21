@@ -10,6 +10,18 @@ import {
 import { getUsers } from "../../../../action/user.action";
 
 export default function ManageJobs() {
+  const getTomorrowDateForInput = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Format using local date parts to avoid timezone drift from toISOString.
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+    const day = String(tomorrow.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +45,7 @@ export default function ManageJobs() {
     siteContactPhone: "",
     siteContactName: "",
     dateCreated: new Date().toLocaleDateString("en-GB"),
-    dateDue: "",
+    dateDue: getTomorrowDateForInput(),
     specialNotesForInspector: "",
     formType: "HUD/FHA 92051 Compliance-FINAL",
     agreedFee: "",
@@ -211,6 +223,12 @@ export default function ManageJobs() {
       return false;
     }
 
+    const minDueDate = getTomorrowDateForInput();
+    if (formData.dateDue < minDueDate) {
+      setError(`Date due cannot be earlier than ${minDueDate}`);
+      return false;
+    }
+
     return true;
   };
 
@@ -273,7 +291,7 @@ export default function ManageJobs() {
           siteContactPhone: "",
           siteContactName: "",
           dateCreated: new Date().toLocaleDateString("en-GB"),
-          dateDue: "",
+          dateDue: getTomorrowDateForInput(),
           specialNotesForInspector: "",
           formType: "HUD/FHA 92051 Compliance-FINAL",
           agreedFee: "",
@@ -727,6 +745,7 @@ export default function ManageJobs() {
                   name='dateDue'
                   value={formData.dateDue}
                   onChange={handleChange}
+                  min={getTomorrowDateForInput()}
                   required
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                 />
