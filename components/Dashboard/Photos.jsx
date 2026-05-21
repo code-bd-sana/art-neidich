@@ -29,6 +29,45 @@ const getRenderableImageUrl = (url) => {
   return url;
 };
 
+const sanitizeFilePart = (value, fallback = "photo") => {
+  const cleaned = String(value || fallback)
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return cleaned || fallback;
+};
+
+const getImageExtension = (url, mimeType) => {
+  if (mimeType && mimeType.includes("/")) {
+    const rawExt = mimeType.split("/")[1] || "jpg";
+    return sanitizeFilePart(rawExt.split("+")[0].toLowerCase(), "jpg");
+  }
+
+  if (url) {
+    const cleanUrl = url.split("?")[0].split("#")[0];
+    const rawExt = cleanUrl.split(".").pop();
+    if (rawExt && /^[a-z0-9]{2,5}$/i.test(rawExt)) {
+      return rawExt.toLowerCase();
+    }
+  }
+
+  return "jpg";
+};
+
+const buildImageFilename = ({ location, image, index = 0 }) => {
+  const locationPart = sanitizeFilePart(location, "location");
+  const labelPart = sanitizeFilePart(
+    image?.alt || image?.imageLabel || `photo_${index + 1}`,
+    "photo",
+  );
+  const ext = getImageExtension(image?.url, image?.mimeType);
+
+  return `${locationPart}__${labelPart}_${String(index + 1).padStart(2, "0")}.${ext}`;
+};
+
 export default function Photos({ jobData }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,7 +119,7 @@ export default function Photos({ jobData }) {
 
                   if (normalizedImage.url) {
                     transformedPhotos.push({
-                      id: `\${imageGroup.imageLabel}-\${index}`,
+                      id: `${imageGroup.imageLabel}-${index}`,
                       location: imageGroup.imageLabel,
                       count: 1,
                       images: [normalizedImage],
@@ -102,7 +141,7 @@ export default function Photos({ jobData }) {
 
                     if (normalizedImage.url) {
                       transformedPhotos.push({
-                        id: `\${imageGroup.imageLabel}-\${img._id || img.id || Math.random().toString(36).substr(2, 9)}`,
+                        id: `${imageGroup.imageLabel}-${img._id || img.id || Math.random().toString(36).substr(2, 9)}`,
                         location: img.imageLabel || imageGroup.imageLabel,
                         count: 1,
                         images: [normalizedImage],
@@ -157,7 +196,7 @@ export default function Photos({ jobData }) {
       ]);
 
       const zip = new JSZip();
-      const folder = zip.folder(item.location.replace(/\\s+/g, "_")) || zip;
+      const folder = zip.folder(sanitizeFilePart(item.location, "location")) || zip;
 
       const usedNames = new Set();
 
@@ -165,20 +204,19 @@ export default function Photos({ jobData }) {
         const image = item.images[i];
         if (!image?.url) continue;
 
-        let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
-        let ext = "jpg";
-        if (image.mimeType) {
-          ext = image.mimeType.split("/")[1] || "jpg";
-        } else if (image.url) {
-          const urlParts = image.url.split(".");
-          ext = urlParts[urlParts.length - 1].split("?")[0] || "jpg";
-        }
-        let filename = `\${baseName}.\${ext}`;
+        const filename = buildImageFilename({
+          location: item.location,
+          image,
+          index: i,
+        });
 
-        let counter = 1;
+        let counter = 2;
         let uniqueFilename = filename;
         while (usedNames.has(uniqueFilename)) {
-          uniqueFilename = `\${baseName} (\${counter}).\${ext}`;
+          const dotIndex = filename.lastIndexOf(".");
+          const stem = dotIndex === -1 ? filename : filename.slice(0, dotIndex);
+          const ext = dotIndex === -1 ? "" : filename.slice(dotIndex);
+          uniqueFilename = `${stem}_${String(counter).padStart(2, "0")}${ext}`;
           counter++;
         }
         usedNames.add(uniqueFilename);
@@ -191,12 +229,12 @@ export default function Photos({ jobData }) {
           const blob = await response.blob();
           folder.file(uniqueFilename, blob);
         } catch (err) {
-          console.error(`Failed to add \${image.url} to ZIP:`, err);
+          console.error(`Failed to add ${image.url} to ZIP:`, err);
         }
       }
 
       const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `\${item.location.replace(/\\s+/g, "_")}_photos.zip`);
+      saveAs(content, `${sanitizeFilePart(item.location, "location")}_photos.zip`);
     } catch (error) {
       console.error("ZIP creation error:", error);
       alert(extractErrorMessage(error, "Failed to create ZIP file."));
@@ -262,7 +300,7 @@ export default function Photos({ jobData }) {
       });
       if (!response.ok) {
         throw new Error(
-          `Fetch failed: \${response.status} \${response.statusText}`,
+          `Fetch failed: ${response.status} ${response.statusText}`,
         );
       }
 
@@ -302,7 +340,11 @@ export default function Photos({ jobData }) {
             item.count === 1
               ? downloadSingleImage(
                   item.images[0]?.url,
-                  `\${item.location}.jpg`,
+                  buildImageFilename({
+                    location: item.location,
+                    image: item.images[0],
+                    index: 0,
+                  }),
                   item.id,
                 )
               : downloadZipForLabel(item)
@@ -320,7 +362,7 @@ export default function Photos({ jobData }) {
               <span>
                 {item.count === 1
                   ? "Download Photo"
-                  : `Download ZIP (\${item.count})`}
+                  : `Download ZIP (${item.count})`}
               </span>
             </>
           )}
@@ -556,7 +598,11 @@ export default function Photos({ jobData }) {
                       item.count === 1
                         ? downloadSingleImage(
                             item.images[0]?.url,
-                            `\${item.location}.jpg`,
+                            buildImageFilename({
+                              location: item.location,
+                              image: item.images[0],
+                              index: 0,
+                            }),
                             item.id,
                           )
                         : downloadZipForLabel(item)
@@ -574,7 +620,7 @@ export default function Photos({ jobData }) {
                         <span>
                           {item.count === 1
                             ? "Download"
-                            : `Download (\${item.count})`}
+                            : `Download (${item.count})`}
                         </span>
                       </>
                     )}
