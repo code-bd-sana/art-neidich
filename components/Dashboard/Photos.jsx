@@ -10,9 +10,6 @@ import { useState, useEffect } from "react";
 import { getReportById } from "../../action/report.action";
 import { extractErrorMessage } from "../../lib/error-utils";
 import Image from "next/image";
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
-import { generateReportPdf } from "../../utils/generateReportPdf";
 
 const getRenderableImageUrl = (url) => {
   if (!url) return null;
@@ -61,12 +58,10 @@ export default function Photos({ jobData }) {
           if (data.success) {
             setReportData(data.data);
 
-            // Transform data for PDF generation
             const transformedPhotos = [];
 
             if (data.data.images) {
               data.data.images.forEach((imageGroup, index) => {
-                // New API shape: { imageLabel, image: {...} }
                 if (imageGroup?.imageLabel && imageGroup?.image) {
                   const normalizedImage = {
                     ...imageGroup.image,
@@ -85,7 +80,7 @@ export default function Photos({ jobData }) {
 
                   if (normalizedImage.url) {
                     transformedPhotos.push({
-                      id: `${imageGroup.imageLabel}-${index}`,
+                      id: `\${imageGroup.imageLabel}-\${index}`,
                       location: imageGroup.imageLabel,
                       count: 1,
                       images: [normalizedImage],
@@ -94,7 +89,6 @@ export default function Photos({ jobData }) {
                   return;
                 }
 
-                // Legacy shape: { imageLabel, images: [...] }
                 if (
                   imageGroup?.imageLabel &&
                   Array.isArray(imageGroup?.images)
@@ -108,7 +102,7 @@ export default function Photos({ jobData }) {
 
                     if (normalizedImage.url) {
                       transformedPhotos.push({
-                        id: `${imageGroup.imageLabel}-${img._id || img.id || Math.random().toString(36).substr(2, 9)}`,
+                        id: `\${imageGroup.imageLabel}-\${img._id || img.id || Math.random().toString(36).substr(2, 9)}`,
                         location: img.imageLabel || imageGroup.imageLabel,
                         count: 1,
                         images: [normalizedImage],
@@ -119,8 +113,8 @@ export default function Photos({ jobData }) {
               });
             }
 
-            setOrderedPhotoData(transformedPhotos);
-            const sortedPhotos = transformedPhotos;
+            setOrderedPhotoData([...transformedPhotos]);
+            const sortedPhotos = sortPhotoGroups(transformedPhotos);
             setPhotoData(sortedPhotos);
           } else {
             throw new Error(
@@ -148,8 +142,108 @@ export default function Photos({ jobData }) {
     }
   }, [jobData]);
 
-  console.log("kjsd", reportData);
-  // Single image download with loading state
+  // LAZY LOAD HEAVY DEPENDENCIES
+  const downloadZipForLabel = async (item) => {
+    if (!item?.images?.length) {
+      alert("No images to download");
+      return;
+    }
+
+    setDownloadingZip(item.id);
+    try {
+      const [JSZip, { saveAs }] = await Promise.all([
+        import("jszip").then((m) => m.default || m),
+        import("file-saver"),
+      ]);
+
+      const zip = new JSZip();
+      const folder = zip.folder(item.location.replace(/\\s+/g, "_")) || zip;
+
+      const usedNames = new Set();
+
+      for (let i = 0; i < item.images.length; i++) {
+        const image = item.images[i];
+        if (!image?.url) continue;
+
+        let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
+        let ext = "jpg";
+        if (image.mimeType) {
+          ext = image.mimeType.split("/")[1] || "jpg";
+        } else if (image.url) {
+          const urlParts = image.url.split(".");
+          ext = urlParts[urlParts.length - 1].split("?")[0] || "jpg";
+        }
+        let filename = `\${baseName}.\${ext}`;
+
+        let counter = 1;
+        let uniqueFilename = filename;
+        while (usedNames.has(uniqueFilename)) {
+          uniqueFilename = `\${baseName} (\${counter}).\${ext}`;
+          counter++;
+        }
+        usedNames.add(uniqueFilename);
+
+        try {
+          const response = await fetch(getRenderableImageUrl(image.url), {
+            mode: "cors",
+          });
+          if (!response.ok) continue;
+          const blob = await response.blob();
+          folder.file(uniqueFilename, blob);
+        } catch (err) {
+          console.error(`Failed to add \${image.url} to ZIP:`, err);
+        }
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `\${item.location.replace(/\\s+/g, "_")}_photos.zip`);
+    } catch (error) {
+      console.error("ZIP creation error:", error);
+      alert(extractErrorMessage(error, "Failed to create ZIP file."));
+    } finally {
+      setDownloadingZip(null);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    const dataToUse =
+      orderedPhotoData.length > 0 ? orderedPhotoData : photoData;
+
+    if (!dataToUse.length) {
+      alert("No photos available for report");
+      return;
+    }
+
+    setDownloadingReport(true);
+    try {
+      // LAZY LOAD HEAVY PDF UTILITY
+      const { generateReportPdf } =
+        await import("../../utils/generateReportPdf");
+
+      const imagesByLabel = {};
+
+      dataToUse.forEach((group) => {
+        if (group.images && group.images.length > 0) {
+          imagesByLabel[group.location] = group.images.map((img) => {
+            return {
+              ...img,
+              _id: img.id || Math.random().toString(36).substr(2, 9),
+              url: img.url || img.imageUrl || "",
+              noteForAdmin: img.noteForAdmin || img.notes || "",
+            };
+          });
+        }
+      });
+
+      await generateReportPdf(imagesByLabel, jobData);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      alert(extractErrorMessage(error, "Failed to generate PDF report."));
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const downloadSingleImage = async (
     url,
     filename = "inspection-photo.jpg",
@@ -162,28 +256,18 @@ export default function Photos({ jobData }) {
 
     setDownloadingImage(itemId);
     try {
+      const { saveAs } = await import("file-saver");
       const response = await fetch(getRenderableImageUrl(url), {
         mode: "cors",
       });
       if (!response.ok) {
         throw new Error(
-          `Fetch failed: ${response.status} ${response.statusText}`,
+          `Fetch failed: \${response.status} \${response.statusText}`,
         );
       }
 
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-
-      console.log("Single image downloaded:", filename);
+      saveAs(blob, filename);
     } catch (err) {
       console.error("Single image download error:", err);
       window.open(url, "_blank");
@@ -198,116 +282,6 @@ export default function Photos({ jobData }) {
     }
   };
 
-  // ZIP download with loading state
-  const downloadZipForLabel = async (item) => {
-    if (!item?.images?.length) {
-      alert("No images to download");
-      return;
-    }
-
-    setDownloadingZip(item.id);
-    const zip = new JSZip();
-    const folder = zip.folder(item.location.replace(/\s+/g, "_")) || zip;
-
-    const usedNames = new Set();
-
-    try {
-      for (let i = 0; i < item.images.length; i++) {
-        const image = item.images[i];
-        if (!image?.url) continue;
-
-        let baseName = image.alt || image.imageLabel || `photo_${i + 1}`;
-        let ext = "jpg"; // Default extension
-        if (image.mimeType) {
-          ext = image.mimeType.split("/")[1] || "jpg";
-        } else if (image.url) {
-          // Extract extension from URL
-          const urlParts = image.url.split(".");
-          ext = urlParts[urlParts.length - 1].split("?")[0] || "jpg";
-        }
-        let filename = `${baseName}.${ext}`;
-
-        // Make filename unique
-        let counter = 1;
-        let uniqueFilename = filename;
-        while (usedNames.has(uniqueFilename)) {
-          uniqueFilename = `${baseName} (${counter}).${ext}`;
-          counter++;
-        }
-        usedNames.add(uniqueFilename);
-
-        try {
-          const response = await fetch(getRenderableImageUrl(image.url), {
-            mode: "cors",
-          });
-          if (!response.ok) continue;
-          const blob = await response.blob();
-          folder.file(uniqueFilename, blob);
-        } catch (err) {
-          console.error(`Failed to add ${image.url} to ZIP:`, err);
-        }
-      }
-
-      const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, `${item.location.replace(/\s+/g, "_")}_photos.zip`);
-    } catch (error) {
-      console.error("ZIP creation error:", error);
-      alert(extractErrorMessage(error, "Failed to create ZIP file."));
-    } finally {
-      setDownloadingZip(null);
-    }
-  };
-
-  // PDF report download with loading state
-  // In your handleDownloadReport function, add more logging:
-  const handleDownloadReport = async () => {
-    if (!orderedPhotoData.length) {
-      alert("No photos available for report");
-      return;
-    }
-
-    setDownloadingReport(true);
-    try {
-      // Group images by label for PDF generation
-      const imagesByLabel = {};
-
-      orderedPhotoData.forEach((group) => {
-        console.log(`Group: ${group.location}`, group);
-
-        if (group.images && group.images.length > 0) {
-          imagesByLabel[group.location] = group.images.map((img) => {
-            const processedImg = {
-              ...img,
-              _id: img.id || Math.random().toString(36).substr(2, 9),
-              url: img.url || img.imageUrl || "",
-              noteForAdmin: img.noteForAdmin || img.notes || "",
-            };
-            console.log(`  Image for ${group.location}:`, processedImg);
-            return processedImg;
-          });
-        }
-      });
-
-      console.log(
-        "Final imagesByLabel for PDF:",
-        JSON.stringify(imagesByLabel, null, 2),
-      );
-
-      // Check if any label has more than 1 image
-      Object.entries(imagesByLabel).forEach(([label, images]) => {
-        console.log(`${label}: ${images.length} images`);
-      });
-
-      await generateReportPdf(imagesByLabel, jobData);
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      alert(extractErrorMessage(error, "Failed to generate PDF report."));
-    } finally {
-      setDownloadingReport(false);
-    }
-  };
-
-  // Mobile Card (fixed buttons)
   const MobilePhotoCard = ({ item }) => (
     <div className='bg-white border border-gray-200 rounded-lg p-4 mb-3'>
       <div className='flex items-center justify-between mb-3'>
@@ -328,13 +302,13 @@ export default function Photos({ jobData }) {
             item.count === 1
               ? downloadSingleImage(
                   item.images[0]?.url,
-                  `${item.location}.jpg`,
+                  `\${item.location}.jpg`,
                   item.id,
                 )
               : downloadZipForLabel(item)
           }
           disabled={downloadingImage === item.id || downloadingZip === item.id}
-          className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+          className='flex-1 flex items-center justify-center gap-2 py-2 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'>
           {downloadingImage === item.id || downloadingZip === item.id ? (
             <>
               <Loader2 size={14} className='animate-spin' />
@@ -346,7 +320,7 @@ export default function Photos({ jobData }) {
               <span>
                 {item.count === 1
                   ? "Download Photo"
-                  : `Download ZIP (${item.count})`}
+                  : `Download ZIP (\${item.count})`}
               </span>
             </>
           )}
@@ -355,7 +329,7 @@ export default function Photos({ jobData }) {
         <button
           onClick={handleDownloadReport}
           disabled={downloadingReport}
-          className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+          className='flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'>
           {downloadingReport ? (
             <>
               <Loader2 size={14} className='animate-spin' />
@@ -372,7 +346,6 @@ export default function Photos({ jobData }) {
     </div>
   );
 
-  // Loading, Error, No Photos states
   if (loading) {
     return (
       <div className='flex justify-center items-center py-12'>
@@ -404,19 +377,6 @@ export default function Photos({ jobData }) {
             ? "No photos found for this report"
             : "Report not submitted yet. Photos will appear here once the report is submitted."}
         </p>
-        {!jobData?.hasReport && (
-          <div className='inline-flex items-center gap-2 text-sm text-gray-500'>
-            <span>Report Status:</span>
-            <span
-              className={`px-2 py-1 rounded text-xs ${
-                jobData?.reportStatus === "in_progress"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}>
-              {jobData?.reportStatusLabel || "Not Started"}
-            </span>
-          </div>
-        )}
       </div>
     );
   }
@@ -425,14 +385,13 @@ export default function Photos({ jobData }) {
 
   return (
     <div>
-      {/* Mobile Header */}
       <div className='md:hidden mb-4'>
         <div className='flex items-center justify-between'>
           <h2 className='text-lg font-semibold text-gray-900'>Photos</h2>
           <button
             onClick={handleDownloadReport}
             disabled={downloadingReport}
-            className='flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+            className='flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'>
             {downloadingReport ? (
               <>
                 <Loader2 size={14} className='animate-spin' />
@@ -450,7 +409,7 @@ export default function Photos({ jobData }) {
         {reportData?.status && (
           <div className='mt-2'>
             <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
+              className={`px-3 py-1 rounded-full text-xs font-medium \${
                 reportData.status === "completed"
                   ? "bg-green-50 text-green-700"
                   : reportData.status === "in_progress"
@@ -463,7 +422,6 @@ export default function Photos({ jobData }) {
         )}
       </div>
 
-      {/* Desktop Header */}
       <div className='hidden md:flex items-center justify-between mb-6'>
         <div>
           <h2 className='text-xl font-semibold text-gray-900'>
@@ -477,7 +435,7 @@ export default function Photos({ jobData }) {
               <div className='flex items-center gap-2'>
                 <span className='text-sm text-gray-600'>Report Status:</span>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium \${
                     reportData.status === "completed"
                       ? "bg-green-50 text-green-700"
                       : reportData.status === "in_progress"
@@ -494,7 +452,7 @@ export default function Photos({ jobData }) {
             <button
               onClick={handleDownloadReport}
               disabled={downloadingReport}
-              className='flex items-center gap-2 px-4 py-2 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+              className='flex items-center gap-2 px-4 py-2 border border-orange-500 text-orange-500 rounded-full text-sm hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'>
               {downloadingReport ? (
                 <>
                   <Loader2 size={14} className='animate-spin' />
@@ -511,16 +469,13 @@ export default function Photos({ jobData }) {
         </div>
       </div>
 
-      {/* Mobile View */}
       <div className='md:hidden'>
         {photoData.map((item) => (
           <MobilePhotoCard key={item.id} item={item} />
         ))}
       </div>
 
-      {/* Desktop View */}
       <div className='hidden md:block border border-gray-200 rounded-lg overflow-hidden'>
-        {/* Table Header */}
         <div className='bg-gray-50 border-b border-gray-200'>
           <div className='grid grid-cols-12 gap-4 px-6 py-3'>
             <div className='col-span-8'>
@@ -535,7 +490,6 @@ export default function Photos({ jobData }) {
           </div>
         </div>
 
-        {/* Table Body */}
         <div className='divide-y divide-gray-200 bg-white'>
           {photoData.map((item) => (
             <div
@@ -563,7 +517,7 @@ export default function Photos({ jobData }) {
                           key={idx}
                           className='relative w-8 h-8 rounded border-2 border-white bg-gray-100 overflow-hidden'
                           style={{
-                            transform: `rotate(${(idx - 1) * 8}deg)`,
+                            transform: `rotate(\${(idx - 1) * 8}deg)`,
                             zIndex: idx,
                           }}>
                           {image.url ? (
@@ -572,8 +526,6 @@ export default function Photos({ jobData }) {
                               alt='Image preview'
                               width={32}
                               height={32}
-                              // If the URL is a signed S3 URL or contains encoded characters
-                              // bypass the Next.js image optimizer to avoid server-side timeouts
                               unoptimized={
                                 typeof image.url === "string" &&
                                 (image.url.includes("X-Amz-") ||
@@ -604,12 +556,12 @@ export default function Photos({ jobData }) {
                       item.count === 1
                         ? downloadSingleImage(
                             item.images[0]?.url,
-                            `${item.location}.jpg`,
+                            `\${item.location}.jpg`,
                             item.id,
                           )
                         : downloadZipForLabel(item)
                     }
-                    className='flex items-center gap-2 px-3 py-1.5 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'>
+                    className='flex items-center gap-2 px-3 py-1.5 border border-teal-600 text-teal-600 rounded-lg text-sm hover:bg-teal-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'>
                     {downloadingImage === item.id ||
                     downloadingZip === item.id ? (
                       <>
@@ -622,7 +574,7 @@ export default function Photos({ jobData }) {
                         <span>
                           {item.count === 1
                             ? "Download"
-                            : `Download (${item.count})`}
+                            : `Download (\${item.count})`}
                         </span>
                       </>
                     )}
@@ -634,7 +586,6 @@ export default function Photos({ jobData }) {
         </div>
       </div>
 
-      {/* Photo Summary */}
       <div className='mt-6 bg-gray-50 rounded-lg p-4'>
         <h3 className='text-sm font-medium text-gray-900 mb-3'>
           Photo Summary
@@ -661,7 +612,6 @@ export default function Photos({ jobData }) {
         </div>
       </div>
 
-      {/* Inspector Info */}
       {reportData?.inspector && (
         <div className='mt-6 bg-gray-50 rounded-lg p-4'>
           <h3 className='text-sm font-medium text-gray-900 mb-3'>
