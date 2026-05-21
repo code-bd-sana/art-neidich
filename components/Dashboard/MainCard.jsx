@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Eye,
   Search,
@@ -21,6 +21,7 @@ import { getJobs, deleteJob } from "../../action/job.action";
 import { extractErrorMessage } from "../../lib/error-utils";
 
 const MainCard = () => {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,7 @@ const MainCard = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingJobId, setDeletingJobId] = useState("");
+  const [navigatingId, setNavigatingId] = useState("");
 
   const searchTimeoutRef = useRef(null);
   const isInitialMount = useRef(true);
@@ -233,6 +235,13 @@ const MainCard = () => {
     setSearchTerm("");
     setCurrentPage(1);
     setShowFilter(false);
+  };
+
+  const handleViewDetails = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setNavigatingId(id);
+    router.push(`/dashboard/view-details/${id}`);
   };
 
   const handleDeleteClick = (inspection) => {
@@ -625,12 +634,19 @@ const MainCard = () => {
                         </div>
 
                         <div className='grid grid-cols-2 gap-3'>
-                          <Link
-                            href={`/dashboard/view-details/${inspection.id}`}
-                            className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-teal-700 transition-colors'>
-                            <span className='sr-only'>View details</span>
-                            <Eye size={18} />
-                          </Link>
+                          <button
+                            onClick={(e) => handleViewDetails(e, inspection.id)}
+                            disabled={navigatingId === inspection.id}
+                            className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-teal-700 transition-colors disabled:opacity-70'>
+                            {navigatingId === inspection.id ? (
+                              <Loader2 size={18} className='animate-spin' />
+                            ) : (
+                              <>
+                                <span className='sr-only'>View details</span>
+                                <Eye size={18} />
+                              </>
+                            )}
+                          </button>
                           <button
                             onClick={() => handleDeleteClick(inspection)}
                             disabled={deletingJobId === inspection.id}
@@ -715,11 +731,16 @@ const MainCard = () => {
                           </td>
                           <td className='py-3 px-4'>
                             <div className='flex items-center gap-4'>
-                              <Link
-                                href={`/dashboard/view-details/${inspection.id}`}
-                                className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer'>
-                                <Eye size={16} className='mr-2' />
-                              </Link>
+                              <button
+                                onClick={(e) => handleViewDetails(e, inspection.id)}
+                                disabled={navigatingId === inspection.id}
+                                className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer disabled:opacity-70'>
+                                {navigatingId === inspection.id ? (
+                                  <Loader2 size={16} className='mr-2 animate-spin' />
+                                ) : (
+                                  <Eye size={16} className='mr-2' />
+                                )}
+                              </button>
                               <button
                                 onClick={() => handleDeleteClick(inspection)}
                                 disabled={deletingJobId === inspection.id}

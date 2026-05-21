@@ -37,6 +37,7 @@ export default function Photos({ jobData }) {
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [photoData, setPhotoData] = useState([]);
+  const [orderedPhotoData, setOrderedPhotoData] = useState([]);
   const [downloadingImage, setDownloadingImage] = useState(null);
   const [downloadingZip, setDownloadingZip] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
@@ -124,8 +125,8 @@ export default function Photos({ jobData }) {
               });
             }
 
+            setOrderedPhotoData(transformedPhotos);
             const sortedPhotos = sortPhotoGroups(transformedPhotos);
-
             setPhotoData(sortedPhotos);
           } else {
             throw new Error(
@@ -134,6 +135,7 @@ export default function Photos({ jobData }) {
           }
         } else {
           setPhotoData([]);
+          setOrderedPhotoData([]);
         }
       } catch (err) {
         console.error("Error fetching report photos:", err);
@@ -148,6 +150,7 @@ export default function Photos({ jobData }) {
     } else {
       setLoading(false);
       setPhotoData([]);
+      setOrderedPhotoData([]);
     }
   }, [jobData]);
 
@@ -264,7 +267,7 @@ export default function Photos({ jobData }) {
   // PDF report download with loading state
   // In your handleDownloadReport function, add more logging:
   const handleDownloadReport = async () => {
-    if (!photoData.length) {
+    if (!orderedPhotoData.length) {
       alert("No photos available for report");
       return;
     }
@@ -274,7 +277,7 @@ export default function Photos({ jobData }) {
       // Group images by label for PDF generation
       const imagesByLabel = {};
 
-      photoData.forEach((group) => {
+      orderedPhotoData.forEach((group) => {
         console.log(`Group: ${group.location}`, group);
 
         if (group.images && group.images.length > 0) {

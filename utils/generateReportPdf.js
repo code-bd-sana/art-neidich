@@ -13,7 +13,7 @@ import { saveAs } from "file-saver";
 
 const HEADER_IMAGE_URL = "/header.png";
 const FOOTER_LEFT_IMAGE_URL = "/footer_left.png";
-const FOOTER_RIGHT_IMAGE_URL = "/footer_right.png";
+const FOOTER_RIGHT_IMAGE_URL = "/footer.png";
 const IMAGE_PROXY_ROUTE = "/api/image-proxy";
 
 const getRenderableImageUrl = (url) => {
@@ -322,7 +322,7 @@ const Header = ({ jobData }) => (
       A division of Lone Star Building Inspection, Inc.
     </Text>
     {/* <Text style={styles.mainTitle}>Inspection report</Text> */}
-    <Text style={styles.attachmentText}>Attachment to FHA Form 92051</Text>
+    <Text style={styles.attachmentText}>Attachment to HUD/FHA Form 92051</Text>
   </View>
 );
 
@@ -331,11 +331,10 @@ const Footer = () => (
   <View style={styles.footer} fixed>
     <Image src={FOOTER_LEFT_IMAGE_URL} alt='Img' style={styles.footerImage} />
     <Text style={styles.footerText}>
-      All utilities are on and tested unless otherwise noted{"\n"}
-      Properties without working utilities do not qualify for compliance{"\n"}
-      TREC Lic. # 10546 | TSBPE Lic. # 3836 | Code Enforcement Lic. # 7055 |
-      HUD-FHA Fee Reg.# D683 & 203K – D0931{"\n"}
-      ICC Certified Residential Combination Inspector
+      All Utilities On At Time of Inspection, Unless Otherwise Noted{"\n"}
+      T.R.E.C Lic. # 10546 | TSBPE Lic. # I-3836 Texas Code Enforcement Officer
+      Lic. # 7055{"\n"}
+      Certified ICC Professionals | Residential Combination Inspector
     </Text>
     <Image src={FOOTER_RIGHT_IMAGE_URL} alt='Img' style={styles.footerImage} />
   </View>
@@ -352,7 +351,7 @@ const ReportHeaderInfo = ({ jobData }) => (
         </Text>
       </View>
       <View style={styles.infoRight}>
-        <Text style={[styles.label, { marginLeft: 20 }]}>FHA Case #</Text>
+        <Text style={[styles.label, { marginLeft: 20 }]}>Case #</Text>
         <Text
           style={[styles.value, { fontWeight: "semibold", color: "#222325" }]}>
           {jobData?.fhaCaseDetailsNo || jobData?.caseNumber || "N/A"}
