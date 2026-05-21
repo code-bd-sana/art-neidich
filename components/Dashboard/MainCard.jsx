@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -22,6 +22,7 @@ import { extractErrorMessage } from "../../lib/error-utils";
 
 const MainCard = () => {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [currentPage, setCurrentPage] = useState(1);
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,20 @@ const MainCard = () => {
     return status || "Unknown";
   };
 
+  // Robust navigation handler using React 19 Transitions
+  const handleViewDetails = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Set local state for row-specific feedback
+    setNavigatingId(id);
+    
+    // Use transition to prioritize navigation and ensure it's not interrupted by other state updates
+    startTransition(() => {
+      router.push(`/dashboard/view-details/${id}`);
+    });
+  };
+
   // Fetch function
   const fetchInspections = useCallback(async () => {
     setLoading(true);
@@ -123,7 +138,6 @@ const MainCard = () => {
           inspector:
             job.inspector.firstName + " " + job.inspector.lastName ||
             "Unassigned",
-          // inspector: job.inspector.email || "Unassigned",
           siteContactName: job.siteContactName || "Unassigned",
           dueDate: formatDate(job.dueDate),
           dateSubmitted: formatDate(job.createdAt),
@@ -135,7 +149,6 @@ const MainCard = () => {
           ),
           rawData: job,
         }));
-        console.log("data", data);
 
         const sortData = (items) => {
           const arr = [...items];
@@ -237,13 +250,6 @@ const MainCard = () => {
     setShowFilter(false);
   };
 
-  const handleViewDetails = (e, id) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setNavigatingId(id);
-    router.push(`/dashboard/view-details/${id}`);
-  };
-
   const handleDeleteClick = (inspection) => {
     setDeleteTarget(inspection);
   };
@@ -281,7 +287,6 @@ const MainCard = () => {
     }
   };
 
-  // Pagination Previous Page handlers
   const handlePrevious = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -289,7 +294,6 @@ const MainCard = () => {
     }
   };
 
-  // Pagination Next page handler
   const handleNext = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -297,12 +301,10 @@ const MainCard = () => {
     }
   };
 
-  // Toggle card expansion on mobile
   const toggleCardExpand = (id) => {
     setExpandedCard(expandedCard === id ? null : id);
   };
 
-  // Generate page numbers for pagination display
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 3;
@@ -332,7 +334,6 @@ const MainCard = () => {
     return pages;
   };
 
-  // Handler for direct page number click
   const handlePageClick = (page) => {
     if (typeof page === "number") {
       setCurrentPage(page);
@@ -340,13 +341,11 @@ const MainCard = () => {
     }
   };
 
-  // Get label for currently selected filter
   const getCurrentFilterLabel = () => {
     const option = filterOptions.find((opt) => opt.value === selectedStatus);
     return option ? option.label : "All Status";
   };
 
-  // Get label for currently selected sort option
   const getCurrentSortLabel = () => {
     const option = sortOptions.find((opt) => opt.value === selectedSort);
     return option ? option.label : "Sort By";
@@ -382,24 +381,22 @@ const MainCard = () => {
             {searchTerm && (
               <button
                 onClick={handleClearSearch}
-                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'>
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer'>
                 <X size={18} />
               </button>
             )}
           </div>
 
-          {/* Sort By Button - location & date */}
           <button
             onClick={() => setShowSort(!showSort)}
-            className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors'>
+            className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer'>
             <SortAsc size={20} />
             <span className='text-sm font-medium'>{getCurrentSortLabel()}</span>
           </button>
 
-          {/* Filter Button - Both Mobile & Desktop */}
           <button
             onClick={() => setShowFilter(!showFilter)}
-            className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors'>
+            className='px-4 py-3 rounded-lg bg-white border border-gray-300 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors cursor-pointer'>
             <Filter size={20} />
             <span className='text-sm font-medium'>
               {getCurrentFilterLabel()}
@@ -407,16 +404,13 @@ const MainCard = () => {
           </button>
         </div>
 
-        {/* Filter Modal - Works for both Mobile & Desktop */}
+        {/* Filter Modal */}
         {showFilter && (
           <>
-            {/* Backdrop */}
             <div
               className='fixed inset-0 bg-black/50 z-40'
               onClick={() => setShowFilter(false)}
             />
-
-            {/* Modal */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 p-6'>
               <div className='flex justify-between items-center mb-6'>
                 <h2 className='text-xl font-bold text-gray-800'>
@@ -424,7 +418,7 @@ const MainCard = () => {
                 </h2>
                 <button
                   onClick={() => setShowFilter(false)}
-                  className='text-gray-500 hover:text-gray-700'>
+                  className='text-gray-500 hover:text-gray-700 cursor-pointer'>
                   <X size={24} />
                 </button>
               </div>
@@ -434,7 +428,7 @@ const MainCard = () => {
                   <button
                     key={option.value}
                     onClick={() => handleStatusChange(option.value)}
-                    className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       selectedStatus === option.value
                         ? "bg-teal-50 text-teal-700 border border-teal-200"
                         : "text-gray-700 hover:bg-gray-50"
@@ -447,34 +441,31 @@ const MainCard = () => {
               <div className='mt-6 flex gap-3'>
                 <button
                   onClick={clearFilters}
-                  className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors'>
+                  className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer'>
                   Clear All
                 </button>
                 <button
                   onClick={() => setShowFilter(false)}
-                  className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'>
+                  className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors cursor-pointer'>
                   Apply
                 </button>
               </div>
             </div>
           </>
         )}
-        {/* Sorting Modal - Works for both Mobile & Desktop */}
+        {/* Sorting Modal */}
         {showSort && (
           <>
-            {/* Backdrop */}
             <div
               className='fixed inset-0 bg-black/50 z-40'
               onClick={() => setShowSort(false)}
             />
-
-            {/* Modal */}
             <div className='fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 p-6'>
               <div className='flex justify-between items-center mb-6'>
                 <h2 className='text-xl font-bold text-gray-800'>Sort</h2>
                 <button
                   onClick={() => setShowSort(false)}
-                  className='text-gray-500 hover:text-gray-700'>
+                  className='text-gray-500 hover:text-gray-700 cursor-pointer'>
                   <X size={24} />
                 </button>
               </div>
@@ -484,7 +475,7 @@ const MainCard = () => {
                   <button
                     key={option.value}
                     onClick={() => handleSortChange(option.value)}
-                    className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full text-left p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       selectedSort === option.value
                         ? "bg-teal-50 text-teal-700 border border-teal-200"
                         : "text-gray-700 hover:bg-gray-50"
@@ -497,12 +488,12 @@ const MainCard = () => {
               <div className='mt-6 flex gap-3'>
                 <button
                   onClick={clearFilters}
-                  className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors'>
+                  className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer'>
                   Clear All
                 </button>
                 <button
                   onClick={() => setShowSort(false)}
-                  className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'>
+                  className='flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors cursor-pointer'>
                   Apply
                 </button>
               </div>
@@ -517,7 +508,7 @@ const MainCard = () => {
               {getCurrentFilterLabel()}
               <button
                 onClick={clearFilters}
-                className='text-teal-600 hover:text-teal-800 ml-1'>
+                className='text-teal-600 hover:text-teal-800 ml-1 cursor-pointer'>
                 <X size={14} />
               </button>
             </span>
@@ -525,328 +516,267 @@ const MainCard = () => {
         )}
       </div>
 
-      {loading ? (
-        <div className='bg-white rounded-xl shadow-sm p-8 flex flex-col items-center justify-center'>
-          <Loader2 className='animate-spin text-teal-600 mb-4' size={32} />
-          <p className='text-gray-600'>Loading inspections...</p>
-        </div>
-      ) : (
-        <>
-          {inspections.length === 0 ? (
-            <div className='bg-white rounded-xl shadow-sm p-8 text-center'>
-              <Search size={48} className='text-gray-300 mx-auto mb-4' />
-              <h3 className='text-lg font-medium text-gray-800 mb-2'>
-                {searchTerm || selectedStatus !== "all"
-                  ? "No matching inspections"
-                  : "No inspections available"}
-              </h3>
-              <p className='text-gray-600 mb-6'>
-                {searchTerm || selectedStatus !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Check back later for new inspections"}
-              </p>
-              {(searchTerm || selectedStatus !== "all") && (
-                <button
-                  onClick={clearFilters}
-                  className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium'>
-                  Clear all
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Mobile Cards */}
-              <div className='md:hidden space-y-4'>
-                {inspections.map((inspection) => (
+      <div className='relative'>
+        {/* Table Content */}
+        {inspections.length === 0 && !loading ? (
+          <div className='bg-white rounded-xl shadow-sm p-8 text-center'>
+            <Search size={48} className='text-gray-300 mx-auto mb-4' />
+            <h3 className='text-lg font-medium text-gray-800 mb-2'>
+              {searchTerm || selectedStatus !== "all"
+                ? "No matching inspections"
+                : "No inspections available"}
+            </h3>
+            <p className='text-gray-600 mb-6'>
+              {searchTerm || selectedStatus !== "all"
+                ? "Try adjusting your search or filters"
+                : "Check back later for new inspections"}
+            </p>
+            {(searchTerm || selectedStatus !== "all") && (
+              <button
+                onClick={clearFilters}
+                className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium cursor-pointer'>
+                Clear all
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Mobile Cards */}
+            <div className='md:hidden space-y-4'>
+              {inspections.map((inspection) => (
+                <div
+                  key={inspection.id}
+                  className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative'>
                   <div
-                    key={inspection.id}
-                    className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
-                    <div
-                      className='p-4 cursor-pointer'
-                      onClick={() => toggleCardExpand(inspection.id)}>
-                      <div className='flex justify-between items-start mb-3'>
-                        <div>
-                          <div className='flex items-center gap-2 mb-1'>
-                            <FileText size={16} className='text-gray-400' />
-                            <span className='font-medium text-gray-800'>
-                              {inspection.fileCode}
-                            </span>
-                          </div>
-                          <span className='text-sm text-gray-600'>
-                            Order: {inspection.orderId}
+                    className='p-4 cursor-pointer'
+                    onClick={() => toggleCardExpand(inspection.id)}>
+                    <div className='flex justify-between items-start mb-3'>
+                      <div>
+                        <div className='flex items-center gap-2 mb-1'>
+                          <FileText size={16} className='text-gray-400' />
+                          <span className='font-medium text-gray-800'>
+                            {inspection.fileCode}
                           </span>
                         </div>
-                        <button className='text-gray-400'>
-                          {expandedCard === inspection.id ? (
-                            <ChevronUp />
+                        <span className='text-sm text-gray-600'>
+                          Order: {inspection.orderId}
+                        </span>
+                      </div>
+                      <button className='text-gray-400 cursor-pointer'>
+                        {expandedCard === inspection.id ? (
+                          <ChevronUp />
+                        ) : (
+                          <ChevronDown />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className='flex items-center gap-2 mb-2'>
+                      <MapPin size={14} className='text-gray-400' />
+                      <span className='text-sm text-gray-700 truncate'>
+                        {inspection.address}
+                      </span>
+                    </div>
+
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-2'>
+                        <User size={14} className='text-gray-400' />
+                        <span className='text-sm text-gray-700'>
+                          {inspection.inspector}
+                        </span>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${inspection.statusColor}`}>
+                        {inspection.reportStatusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {expandedCard === inspection.id && (
+                    <div className='border-t border-gray-200 p-4 bg-gray-50'>
+                      <div className='grid grid-cols-2 gap-4 mb-4'>
+                        <div>
+                          <p className='text-xs text-gray-500 mb-1'>Due Date</p>
+                          <div className='flex items-center gap-2'>
+                            <Calendar size={14} className='text-gray-400' />
+                            <span className='text-sm font-medium text-gray-800'>
+                              {inspection.dueDate}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className='text-xs text-gray-500 mb-1'>Date Received</p>
+                          <div className='flex items-center gap-2'>
+                            <Calendar size={14} className='text-gray-400' />
+                            <span className='text-sm font-medium text-gray-800'>
+                              {inspection.dateSubmitted}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='grid grid-cols-2 gap-3'>
+                        <button
+                          onClick={(e) => handleViewDetails(e, inspection.id)}
+                          className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-teal-700 transition-colors'>
+                          { (navigatingId === inspection.id || (isPending && navigatingId === inspection.id)) ? (
+                            <Loader2 size={18} className='animate-spin' />
                           ) : (
-                            <ChevronDown />
+                            <>
+                              <span className='sr-only'>View details</span>
+                              <Eye size={18} />
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(inspection)}
+                          disabled={deletingJobId === inspection.id}
+                          className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60 cursor-pointer'>
+                          {deletingJobId === inspection.id ? (
+                            <Loader2 size={18} className='animate-spin' />
+                          ) : (
+                            <Trash2 size={18} />
                           )}
                         </button>
                       </div>
-
-                      <div className='flex items-center gap-2 mb-2'>
-                        <MapPin size={14} className='text-gray-400' />
-                        <span className='text-sm text-gray-700 truncate'>
-                          {inspection.address}
-                        </span>
-                      </div>
-
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                          <User size={14} className='text-gray-400' />
-                          <span className='text-sm text-gray-700'>
-                            {inspection.inspector}
-                          </span>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${inspection.statusColor}`}>
-                          {inspection.reportStatusLabel}
-                        </span>
-                      </div>
                     </div>
+                  )}
+                </div>
+              ))}
+            </div>
 
-                    {expandedCard === inspection.id && (
-                      <div className='border-t border-gray-200 p-4 bg-gray-50'>
-                        <div className='grid grid-cols-2 gap-4 mb-4'>
-                          <div>
-                            <p className='text-xs text-gray-500 mb-1'>
-                              Due Date
-                            </p>
-                            <div className='flex items-center gap-2'>
-                              <Calendar size={14} className='text-gray-400' />
-                              <span className='text-sm font-medium text-gray-800'>
-                                {inspection.dueDate}
-                              </span>
-                            </div>
+            {/* Desktop Table */}
+            <div className='hidden md:block bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden'>
+              <div className='overflow-x-auto'>
+                <table className='w-full'>
+                  <thead className='bg-gray-50'>
+                    <tr>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Order ID</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Address</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Inspector</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Site Contact Name</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Due Date</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Date Received</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Status</th>
+                      <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className='divide-y divide-gray-200'>
+                    {inspections.map((inspection) => (
+                      <tr key={inspection.id} className='hover:bg-gray-50 relative'>
+                        <td className='py-3 px-4 text-sm text-gray-600'>{inspection.orderId}</td>
+                        <td className='py-3 px-4 text-sm text-gray-600 max-w-xs truncate'>{inspection.address}</td>
+                        <td className='py-3 px-4 text-sm text-gray-600'>{inspection.inspector}</td>
+                        <td className='py-3 px-4 text-sm text-gray-600'>{inspection.siteContactName}</td>
+                        <td className='py-3 px-4 text-sm text-gray-600'>{inspection.dueDate}</td>
+                        <td className='py-3 px-4 text-sm text-gray-600'>{inspection.dateSubmitted}</td>
+                        <td className='py-3 px-4'>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${inspection.statusColor}`}>
+                            {inspection.reportStatusLabel}
+                          </span>
+                        </td>
+                        <td className='py-3 px-4'>
+                          <div className='flex items-center gap-4'>
+                            <button
+                              onClick={(e) => handleViewDetails(e, inspection.id)}
+                              className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer'>
+                              { (navigatingId === inspection.id || (isPending && navigatingId === inspection.id)) ? (
+                                <Loader2 size={16} className='mr-2 animate-spin' />
+                              ) : (
+                                <Eye size={16} className='mr-2' />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(inspection)}
+                              disabled={deletingJobId === inspection.id}
+                              className='text-red-600 hover:text-red-800 font-medium flex items-center hover:underline disabled:opacity-60 cursor-pointer'>
+                              {deletingJobId === inspection.id ? (
+                                <Loader2 size={16} className='mr-2 animate-spin' />
+                              ) : (
+                                <Trash2 size={16} className='mr-2' />
+                              )}
+                            </button>
                           </div>
-                          <div>
-                            <p className='text-xs text-gray-500 mb-1'>
-                              Date Received
-                            </p>
-                            <div className='flex items-center gap-2'>
-                              <Calendar size={14} className='text-gray-400' />
-                              <span className='text-sm font-medium text-gray-800'>
-                                {inspection.dateSubmitted}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                        <div className='grid grid-cols-2 gap-3'>
-                          <button
-                            onClick={(e) => handleViewDetails(e, inspection.id)}
-                            disabled={navigatingId === inspection.id}
-                            className='w-full py-3 bg-teal-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-teal-700 transition-colors disabled:opacity-70'>
-                            {navigatingId === inspection.id ? (
-                              <Loader2 size={18} className='animate-spin' />
-                            ) : (
-                              <>
-                                <span className='sr-only'>View details</span>
-                                <Eye size={18} />
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(inspection)}
-                            disabled={deletingJobId === inspection.id}
-                            className='w-full py-3 bg-red-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-60 cursor-pointer'>
-                            {deletingJobId === inspection.id ? (
-                              <Loader2 size={18} className='animate-spin' />
-                            ) : (
-                              <Trash2 size={18} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
+            {/* Pagination */}
+            <div className='mt-6'>
+              <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
+                <div className='text-sm text-gray-600 order-2 md:order-1'>
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className='flex items-center gap-2 order-1 md:order-2'>
+                  <button
+                    onClick={handlePrevious}
+                    disabled={currentPage === 1}
+                    className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer'>
+                    Previous
+                  </button>
+                  <div className='hidden md:flex gap-2'>
+                    {getPageNumbers().map((page, index) =>
+                      page === "..." ? (
+                        <span key={`ellipsis-${index}`} className='px-3 py-2 text-gray-500'>...</span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => handlePageClick(page)}
+                          className={`w-10 h-10 rounded-lg transition-colors cursor-pointer ${
+                            currentPage === page ? "bg-teal-600 text-white" : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}>
+                          {page}
+                        </button>
+                      ),
                     )}
                   </div>
-                ))}
-              </div>
-
-              {/* Desktop Table */}
-              <div className='hidden md:block bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden'>
-                <div className='overflow-x-auto'>
-                  <table className='w-full'>
-                    <thead className='bg-gray-50'>
-                      <tr>
-                        {/* <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          File Code
-                        </th> */}
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Order ID
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Address
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Inspector
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Site Contact Name
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Due Date
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Date Received
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Status
-                        </th>
-                        <th className='py-3 px-4 text-left text-sm font-semibold text-gray-600 border-b border-gray-200'>
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className='divide-y divide-gray-200'>
-                      {inspections.map((inspection) => (
-                        <tr key={inspection.id} className='hover:bg-gray-50'>
-                          {/* <td className='py-3 px-4 text-sm font-medium text-gray-800'>
-                            {inspection.fileCode}
-                          </td> */}
-                          <td className='py-3 px-4 text-sm text-gray-600'>
-                            {inspection.orderId}
-                          </td>
-                          <td className='py-3 px-4 text-sm text-gray-600 max-w-xs truncate'>
-                            {inspection.address}
-                          </td>
-                          <td className='py-3 px-4 text-sm text-gray-600'>
-                            {inspection.inspector}
-                          </td>
-                          <td className='py-3 px-4 text-sm text-gray-600'>
-                            {inspection.siteContactName}
-                          </td>
-                          <td className='py-3 px-4 text-sm text-gray-600'>
-                            {inspection.dueDate}
-                          </td>
-                          <td className='py-3 px-4 text-sm text-gray-600'>
-                            {inspection.dateSubmitted}
-                          </td>
-                          <td className='py-3 px-4'>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${inspection.statusColor}`}>
-                              {inspection.reportStatusLabel}
-                            </span>
-                          </td>
-                          <td className='py-3 px-4'>
-                            <div className='flex items-center gap-4'>
-                              <button
-                                onClick={(e) => handleViewDetails(e, inspection.id)}
-                                disabled={navigatingId === inspection.id}
-                                className='text-teal-600 hover:text-teal-800 font-medium flex items-center hover:underline cursor-pointer disabled:opacity-70'>
-                                {navigatingId === inspection.id ? (
-                                  <Loader2 size={16} className='mr-2 animate-spin' />
-                                ) : (
-                                  <Eye size={16} className='mr-2' />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteClick(inspection)}
-                                disabled={deletingJobId === inspection.id}
-                                className='text-red-600 hover:text-red-800 font-medium flex items-center hover:underline disabled:opacity-60 cursor-pointer'>
-                                {deletingJobId === inspection.id ? (
-                                  <Loader2
-                                    size={16}
-                                    className='mr-2 animate-spin'
-                                  />
-                                ) : (
-                                  <Trash2 size={16} className='mr-2' />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <button
+                    onClick={handleNext}
+                    disabled={currentPage === totalPages}
+                    className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors cursor-pointer'>
+                    Next
+                  </button>
                 </div>
               </div>
+            </div>
+          </>
+        )}
 
-              {/* Pagination */}
-              <div className='mt-6'>
-                <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
-                  <div className='text-sm text-gray-600 order-2 md:order-1'>
-                    Page {currentPage} of {totalPages}
-                  </div>
-
-                  <div className='flex items-center gap-2 order-1 md:order-2'>
-                    <button
-                      onClick={handlePrevious}
-                      disabled={currentPage === 1}
-                      className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors'>
-                      Previous
-                    </button>
-
-                    <div className='hidden md:flex gap-2'>
-                      {getPageNumbers().map((page, index) =>
-                        page === "..." ? (
-                          <span
-                            key={`ellipsis-${index}`}
-                            className='px-3 py-2 text-gray-500'>
-                            ...
-                          </span>
-                        ) : (
-                          <button
-                            key={page}
-                            onClick={() => handlePageClick(page)}
-                            className={`w-10 h-10 rounded-lg transition-colors ${
-                              currentPage === page
-                                ? "bg-teal-600 text-white"
-                                : "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                            }`}>
-                            {page}
-                          </button>
-                        ),
-                      )}
-                    </div>
-
-                    <button
-                      onClick={handleNext}
-                      disabled={currentPage === totalPages}
-                      className='px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50 transition-colors'>
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
+        {/* NON-BLOCKING Loading Overlay */}
+        {loading && (
+          <div className='absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center rounded-xl min-h-[400px]'>
+            <Loader2 className='animate-spin text-teal-600 mb-4' size={32} />
+            <p className='text-gray-600 font-medium'>Updating inspections...</p>
+          </div>
+        )}
+      </div>
 
       {deleteTarget && (
         <>
-          <div
-            className='fixed inset-0 bg-black/50 z-40'
-            onClick={handleDeleteCancel}
-          />
+          <div className='fixed inset-0 bg-black/50 z-40' onClick={handleDeleteCancel} />
           <div className='fixed top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 p-6'>
             <h2 className='text-xl font-bold text-gray-800 mb-2'>Delete Job</h2>
             <p className='text-sm text-gray-600 mb-6'>
               Are you sure you want to delete this job
-              {deleteTarget.orderId
-                ? ` (Order ID: ${deleteTarget.orderId})`
-                : ""}
-              ? This action cannot be undone.
+              {deleteTarget.orderId ? ` (Order ID: ${deleteTarget.orderId})` : ""}?
+              This action cannot be undone.
             </p>
-
             <div className='flex gap-3'>
               <button
                 onClick={handleDeleteCancel}
                 disabled={!!deletingJobId}
-                className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-60'>
+                className='flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-60 cursor-pointer'>
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirm}
                 disabled={!!deletingJobId}
-                className='flex-1 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2'>
-                {deletingJobId ? (
-                  <Loader2 size={18} className='animate-spin' />
-                ) : (
-                  <Trash2 size={18} />
-                )}
+                className='flex-1 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer'>
+                {deletingJobId ? <Loader2 size={18} className='animate-spin' /> : <Trash2 size={18} />}
                 Delete
               </button>
             </div>

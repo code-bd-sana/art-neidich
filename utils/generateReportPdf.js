@@ -270,7 +270,9 @@ const fetchImageAsDataUrl = async (url) => {
     });
 
     if (!response.ok) {
-      console.error(`[PDF] Failed to fetch image through proxy: ${response.status} ${response.statusText}`);
+      console.error(
+        `[PDF] Failed to fetch image through proxy: ${response.status} ${response.statusText}`,
+      );
       throw new Error(`Failed to load image: ${response.status}`);
     }
 
@@ -280,7 +282,9 @@ const fetchImageAsDataUrl = async (url) => {
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
       const timeout = setTimeout(() => {
-        console.error(`[PDF] Processing timeout for image: ${url.substring(0, 50)}`);
+        console.error(
+          `[PDF] Processing timeout for image: ${url.substring(0, 50)}`,
+        );
         reject(new Error("Image processing timeout"));
       }, 30000); // 30s timeout per image
 
@@ -288,16 +292,18 @@ const fetchImageAsDataUrl = async (url) => {
         console.log(`[PDF] FileReader finished for ${url.substring(0, 30)}`);
         const img = new window.Image();
         img.crossOrigin = "anonymous";
-        
+
         img.onload = () => {
-          console.log(`[PDF] Image object loaded (${img.naturalWidth}x${img.naturalHeight})`);
+          console.log(
+            `[PDF] Image object loaded (${img.naturalWidth}x${img.naturalHeight})`,
+          );
           const maxSide = 1400;
           const scale = Math.min(
             1,
             maxSide / img.naturalWidth,
             maxSide / img.naturalHeight,
           );
-          
+
           const canvas = document.createElement("canvas");
           canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
           canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -323,13 +329,13 @@ const fetchImageAsDataUrl = async (url) => {
         };
         img.src = reader.result;
       };
-      
+
       reader.onerror = () => {
         clearTimeout(timeout);
         console.error(`[PDF] FileReader error for ${url.substring(0, 30)}`);
         reject(new Error("Failed to convert image to data URL"));
       };
-      
+
       reader.readAsDataURL(blob);
     });
   } catch (err) {
@@ -340,7 +346,10 @@ const fetchImageAsDataUrl = async (url) => {
 
 // Main function to generate PDF
 export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
-  console.log("[PDF] generateReportPdf started. Labels count:", Object.keys(imagesByLabel).length);
+  console.log(
+    "[PDF] generateReportPdf started. Labels count:",
+    Object.keys(imagesByLabel).length,
+  );
 
   try {
     const labels = Object.keys(imagesByLabel);
@@ -408,11 +417,7 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
                         key={`img-${img._id || imgIndex}`}
                         style={styles.imageContainer}>
                         {img.url ? (
-                          <Image
-                            src={img.url}
-                            alt='Img'
-                            style={styles.image}
-                          />
+                          <Image src={img.url} alt='Img' style={styles.image} />
                         ) : (
                           <Text style={{ color: "red", fontSize: 10 }}>
                             Image not available
@@ -454,7 +459,9 @@ export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
               <ReportHeaderInfo jobData={jobData} />
 
               {pageSections.map(([label, images], index) => (
-                <View key={`section-${label}-${startIndex + index}`} wrap={false}>
+                <View
+                  key={`section-${label}-${startIndex + index}`}
+                  wrap={false}>
                   <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>{label}</Text>
                     {images.length === 1 ? (
@@ -539,7 +546,8 @@ const Header = ({ jobData }) => (
   <View style={styles.headerContainer} fixed>
     <Image src={HEADER_IMAGE_URL} alt='Img' style={styles.headerImage} />
     <Text style={styles.websiteLinks}>
-      <Text onPress={() => window.open("https://www.FHAInspection.com", "_blank")}>
+      <Text
+        onPress={() => window.open("https://www.FHAInspection.com", "_blank")}>
         www.FHAInspection.com
       </Text>{" "}
       /{" "}
@@ -588,7 +596,7 @@ const ReportHeaderInfo = ({ jobData }) => (
       <View style={styles.infoLeft}>
         <Text style={styles.label}>Type of Inspection:</Text>
         <Text style={styles.value}>
-          {jobData?.formType || "92051 - FHA Inspection"}
+          {jobData?.formType || "HUD/FHA 92051 Compliance-FINAL"}
         </Text>
       </View>
       <View style={styles.infoRight}>

@@ -18,7 +18,9 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const sourceUrl = searchParams.get("url");
 
-  console.log(`[PROXY] Request received for: ${sourceUrl?.substring(0, 100)}...`);
+  console.log(
+    `[PROXY] Request received for: ${sourceUrl?.substring(0, 100)}...`,
+  );
 
   if (!sourceUrl) {
     return Response.json({ message: "Missing url parameter" }, { status: 400 });
@@ -63,7 +65,9 @@ export async function GET(request) {
     console.log(`[PROXY] Content-Length: ${contentLength}`);
 
     if (!upstreamResponse.ok) {
-      console.error(`[PROXY] S3 fetch failed: ${upstreamResponse.status} ${upstreamResponse.statusText}`);
+      console.error(
+        `[PROXY] S3 fetch failed: ${upstreamResponse.status} ${upstreamResponse.statusText}`,
+      );
       return Response.json(
         { message: "Failed to fetch image", status: upstreamResponse.status },
         { status: upstreamResponse.status },
@@ -71,7 +75,8 @@ export async function GET(request) {
     }
 
     const contentType =
-      upstreamResponse.headers.get("content-type") || "application/octet-stream";
+      upstreamResponse.headers.get("content-type") ||
+      "application/octet-stream";
     const headers = new Headers();
     headers.set("Content-Type", contentType);
     headers.set(
@@ -79,7 +84,9 @@ export async function GET(request) {
       "public, max-age=3600, stale-while-revalidate=86400",
     );
 
-    console.log(`[PROXY] S3 fetch successful, returning body. Content-Type: ${contentType}`);
+    console.log(
+      `[PROXY] S3 fetch successful, returning body. Content-Type: ${contentType}`,
+    );
 
     return new Response(upstreamResponse.body, {
       status: 200,
