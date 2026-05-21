@@ -207,8 +207,8 @@ export default function EditJobModal({ jobData, onClose, onUpdated }) {
                 onChange={handleChange}
                 className='w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100'>
                 <option value=''>Select form type</option>
-                <option value='92051 - FHA Inspection'>
-                  92051 - FHA Inspection
+                <option value='HUD/FHA 92051 Compliance-FINAL'>
+                  HUD/FHA 92051 Compliance-FINAL
                 </option>
               </select>
             </Field>

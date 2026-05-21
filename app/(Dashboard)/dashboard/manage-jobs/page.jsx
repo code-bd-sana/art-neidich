@@ -35,7 +35,7 @@ export default function ManageJobs() {
     dateCreated: new Date().toLocaleDateString("en-GB"),
     dateDue: "",
     specialNotesForInspector: "",
-    formType: "92051 - FHA Inspection",
+    formType: "HUD/FHA 92051 Compliance-FINAL",
     agreedFee: "",
     orderId: "",
     development: "",
@@ -275,7 +275,7 @@ export default function ManageJobs() {
           dateCreated: new Date().toLocaleDateString("en-GB"),
           dateDue: "",
           specialNotesForInspector: "",
-          formType: "92051 - FHA Inspection",
+          formType: "HUD/FHA 92051 Compliance-FINAL",
           agreedFee: "",
           orderId: "",
           development: "",
@@ -637,8 +637,8 @@ export default function ManageJobs() {
                   onChange={handleChange}
                   required
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white'>
-                  <option value='92051 - FHA Inspection'>
-                    92051 - FHA Inspection
+                  <option value='HUD/FHA 92051 Compliance-FINAL'>
+                    HUD/FHA 92051 Compliance-FINAL
                   </option>
                   {/* <option value='RCI Residential Building Code Inspection'>
                     RCI Residential Building Code Inspection

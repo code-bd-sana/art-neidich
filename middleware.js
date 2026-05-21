@@ -57,20 +57,19 @@ export function middleware(req) {
   const payload = token ? parseJwt(token) : null;
 
   const isAuthenticated = payload?.exp && payload.exp > now;
-  const userRole = payload?.role;
 
-  // 🔒 Block auth pages if already logged in
+  // Block auth pages if already logged in
   if (authPages.includes(pathname) && isAuthenticated) {
     return NextResponse.redirect(new URL("/dashboard", origin));
   }
 
-  // 🔓 Allow auth pages for logged-out users
+  // Allow auth pages for logged-out users
   if (authPages.includes(pathname)) return NextResponse.next();
 
-  // 🔓 Allow public policy/legal pages without authentication
+  // Allow public policy/legal pages without authentication
   if (publicPages.includes(pathname)) return NextResponse.next();
 
-  // 🔐 All other pages require authentication
+  // All other pages require authentication
   if (!isAuthenticated) {
     const loginUrl = new URL("/", origin);
     return NextResponse.redirect(loginUrl);
@@ -81,5 +80,17 @@ export function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|public/).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public (public files)
+     * - manifest.json
+     * - robots.txt
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|public|manifest.json|robots.txt).*)",
+  ],
 };
