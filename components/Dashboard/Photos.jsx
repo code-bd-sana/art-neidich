@@ -99,34 +99,28 @@ export default function Photos({ jobData }) {
                   imageGroup?.imageLabel &&
                   Array.isArray(imageGroup?.images)
                 ) {
-                  const groupedByLabel = {};
-
                   imageGroup.images.forEach((img) => {
-                    const label = img.imageLabel || imageGroup.imageLabel;
-                    if (!groupedByLabel[label]) {
-                      groupedByLabel[label] = [];
-                    }
-                    groupedByLabel[label].push({
+                    const normalizedImage = {
                       ...img,
                       noteForAdmin: img.noteForAdmin || img.notes || "",
                       url: img.url || img.imageUrl || "",
-                    });
-                  });
+                    };
 
-                  Object.entries(groupedByLabel).forEach(([label, images]) => {
-                    transformedPhotos.push({
-                      id: `${imageGroup.imageLabel}-${label}`,
-                      location: label,
-                      count: images.length,
-                      images,
-                    });
+                    if (normalizedImage.url) {
+                      transformedPhotos.push({
+                        id: `${imageGroup.imageLabel}-${img._id || img.id || Math.random().toString(36).substr(2, 9)}`,
+                        location: img.imageLabel || imageGroup.imageLabel,
+                        count: 1,
+                        images: [normalizedImage],
+                      });
+                    }
                   });
                 }
               });
             }
 
             setOrderedPhotoData(transformedPhotos);
-            const sortedPhotos = sortPhotoGroups(transformedPhotos);
+            const sortedPhotos = transformedPhotos;
             setPhotoData(sortedPhotos);
           } else {
             throw new Error(
