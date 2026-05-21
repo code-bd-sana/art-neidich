@@ -201,6 +201,8 @@ const styles = StyleSheet.create({
 // Clean S3 URLs
 const cleanImageUrl = (url) => {
   if (!url) return null;
+  if (typeof url !== "string") return url;
+  if (url.startsWith("data:")) return url;
   return url.split("?")[0];
 };
 
@@ -258,59 +260,286 @@ const formatInspectionDate = (value) => {
 };
 
 const fetchImageAsDataUrl = async (url) => {
-  const response = await fetch(getRenderableImageUrl(url), {
-    cache: "no-store",
-  });
+  console.log(`[PDF] Fetching image: ${url.substring(0, 100)}...`);
+  const proxyUrl = getRenderableImageUrl(url);
+  console.log(`[PDF] Using proxy URL: ${proxyUrl.substring(0, 100)}...`);
 
-  if (!response.ok) {
-    throw new Error(`Failed to load image: ${response.status}`);
-  }
+  try {
+    const response = await fetch(proxyUrl, {
+      cache: "no-store",
+    });
 
-  const blob = await response.blob();
+    if (!response.ok) {
+      console.error(`[PDF] Failed to fetch image through proxy: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to load image: ${response.status}`);
+    }
 
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const image = new window.Image();
-      image.onload = () => {
-        const maxSide = 1400;
-        const scale = Math.min(
-          1,
-          maxSide / image.naturalWidth,
-          maxSide / image.naturalHeight,
-        );
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const blob = await response.blob();
+    console.log(`[PDF] Blob retrieved, size: ${blob.size} bytes`);
 
-        const context = canvas.getContext("2d");
-        if (!context) {
-          reject(new Error("Failed to get canvas context"));
-          return;
-        }
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      const timeout = setTimeout(() => {
+        console.error(`[PDF] Processing timeout for image: ${url.substring(0, 50)}`);
+        reject(new Error("Image processing timeout"));
+      }, 30000); // 30s timeout per image
 
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      reader.onloadend = () => {
+        console.log(`[PDF] FileReader finished for ${url.substring(0, 30)}`);
+        const img = new window.Image();
+        img.crossOrigin = "anonymous";
+        
+        img.onload = () => {
+          console.log(`[PDF] Image object loaded (${img.naturalWidth}x${img.naturalHeight})`);
+          const maxSide = 1400;
+          const scale = Math.min(
+            1,
+            maxSide / img.naturalWidth,
+            maxSide / img.naturalHeight,
+          );
+          
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+          const context = canvas.getContext("2d");
+          if (!context) {
+            clearTimeout(timeout);
+            reject(new Error("Failed to get canvas context"));
+            return;
+          }
+
+          context.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+          console.log(`[PDF] Data URL generated, length: ${dataUrl.length}`);
+          clearTimeout(timeout);
+          resolve(dataUrl);
+        };
+
+        img.onerror = () => {
+          clearTimeout(timeout);
+          console.error(`[PDF] Image object error for ${url.substring(0, 30)}`);
+          reject(new Error("Failed to decode image for resizing"));
+        };
+        img.src = reader.result;
       };
-
-      image.onerror = () =>
-        reject(new Error("Failed to decode image for resizing"));
-      image.src = reader.result;
-    };
-    reader.onerror = () =>
-      reject(new Error("Failed to convert image to data URL"));
-    reader.readAsDataURL(blob);
-  });
+      
+      reader.onerror = () => {
+        clearTimeout(timeout);
+        console.error(`[PDF] FileReader error for ${url.substring(0, 30)}`);
+        reject(new Error("Failed to convert image to data URL"));
+      };
+      
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error(`[PDF] fetchImageAsDataUrl error:`, err);
+    throw err;
+  }
 };
 
-// Header Component - appear on every page
+// Main function to generate PDF
+export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
+  console.log("[PDF] generateReportPdf started. Labels count:", Object.keys(imagesByLabel).length);
+
+  try {
+    const labels = Object.keys(imagesByLabel);
+    const processedByLabel = {};
+
+    // Keep the PDF path lightweight: let React-PDF load proxied image URLs directly.
+    for (const label of labels) {
+      console.log(`[PDF] Processing label group: ${label}`);
+      const images = imagesByLabel[label];
+      const processedImages = [];
+
+      for (const img of images) {
+        if (!img?.url) {
+          processedImages.push(img);
+          continue;
+        }
+
+        processedImages.push({
+          ...img,
+          url: getRenderableImageUrl(img.url),
+        });
+      }
+      processedByLabel[label] = processedImages;
+    }
+
+    console.log("[PDF] All images processed. Starting rendering document...");
+
+    const processedByLabelEntries = Object.entries(processedByLabel);
+    const sections = processedByLabelEntries;
+    const sectionsPerPage = 2;
+
+    const blob = await pdf(
+      <Document>
+        <Page size='A4' style={styles.page}>
+          <Header jobData={jobData} />
+          <ReportHeaderInfo jobData={jobData} />
+
+          {sections.slice(0, sectionsPerPage).map(([label, images], index) => (
+            <View key={`section-${label}-${index}`} wrap={false}>
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>{label}</Text>
+                {images.length === 1 ? (
+                  <View style={styles.imageSingle}>
+                    {images[0]?.url ? (
+                      <Image
+                        src={images[0].url}
+                        alt='Img'
+                        style={styles.image}
+                      />
+                    ) : (
+                      <Text style={{ color: "red", fontSize: 10 }}>
+                        Image not available
+                      </Text>
+                    )}
+                    {images[0]?.noteForAdmin && (
+                      <Text style={styles.note}>
+                        Note: {images[0].noteForAdmin}
+                      </Text>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.imageRow}>
+                    {images.slice(0, 2).map((img, imgIndex) => (
+                      <View
+                        key={`img-${img._id || imgIndex}`}
+                        style={styles.imageContainer}>
+                        {img.url ? (
+                          <Image
+                            src={img.url}
+                            alt='Img'
+                            style={styles.image}
+                          />
+                        ) : (
+                          <Text style={{ color: "red", fontSize: 10 }}>
+                            Image not available
+                          </Text>
+                        )}
+                        {img.noteForAdmin && (
+                          <Text style={styles.note}>
+                            Note: {img.noteForAdmin}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+
+          <Footer />
+          <Text
+            style={styles.pageNumber}
+            render={({ pageNumber }) => `${pageNumber}`}
+            fixed
+          />
+        </Page>
+
+        {Array.from({
+          length: Math.ceil(
+            (sections.length - sectionsPerPage) / sectionsPerPage,
+          ),
+        }).map((_, pageIndex) => {
+          const startIndex = sectionsPerPage + pageIndex * sectionsPerPage;
+          const endIndex = startIndex + sectionsPerPage;
+          const pageSections = sections.slice(startIndex, endIndex);
+
+          return (
+            <Page key={`page-${pageIndex + 2}`} size='A4' style={styles.page}>
+              <Header jobData={jobData} />
+              <ReportHeaderInfo jobData={jobData} />
+
+              {pageSections.map(([label, images], index) => (
+                <View key={`section-${label}-${startIndex + index}`} wrap={false}>
+                  <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>{label}</Text>
+                    {images.length === 1 ? (
+                      <View style={styles.imageSingle}>
+                        {images[0]?.url ? (
+                          <Image
+                            src={images[0].url}
+                            alt='Img'
+                            style={styles.image}
+                          />
+                        ) : (
+                          <Text style={{ color: "red", fontSize: 10 }}>
+                            Image not available
+                          </Text>
+                        )}
+                        {images[0]?.noteForAdmin && (
+                          <Text style={styles.note}>
+                            Note: {images[0].noteForAdmin}
+                          </Text>
+                        )}
+                      </View>
+                    ) : (
+                      <View style={styles.imageRow}>
+                        {images.slice(0, 2).map((img, imgIndex) => (
+                          <View
+                            key={`img-${img._id || imgIndex}`}
+                            style={styles.imageContainer}>
+                            {img.url ? (
+                              <Image
+                                src={img.url}
+                                alt='Img'
+                                style={styles.image}
+                              />
+                            ) : (
+                              <Text style={{ color: "red", fontSize: 10 }}>
+                                Image not available
+                              </Text>
+                            )}
+                            {img.noteForAdmin && (
+                              <Text style={styles.note}>
+                                Note: {img.noteForAdmin}
+                              </Text>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              ))}
+
+              <Footer />
+              <Text
+                style={styles.pageNumber}
+                render={({ pageNumber }) => `${pageNumber}`}
+                fixed
+              />
+            </Page>
+          );
+        })}
+      </Document>,
+    ).toBlob();
+
+    console.log("[PDF] Blob generated, saving...");
+
+    const fileName = (jobData?.streetAddress || "Inspection_Report")
+      .replace(/[\\s,]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    saveAs(blob, `${fileName || "Inspection_Report"}.pdf`);
+    console.log("[PDF] Generation and save complete.");
+  } catch (err) {
+    console.error("[PDF] Critical generation error:", err);
+    throw err;
+  }
+};
+
+// --- Helper Components ---
+
 const Header = ({ jobData }) => (
   <View style={styles.headerContainer} fixed>
     <Image src={HEADER_IMAGE_URL} alt='Img' style={styles.headerImage} />
-    {/* Link of both sites, that will redirect */}
     <Text style={styles.websiteLinks}>
-      <Text
-        onPress={() => window.open("https://www.FHAInspection.com", "_blank")}>
+      <Text onPress={() => window.open("https://www.FHAInspection.com", "_blank")}>
         www.FHAInspection.com
       </Text>{" "}
       /{" "}
@@ -321,26 +550,23 @@ const Header = ({ jobData }) => (
     <Text style={styles.companySubtitle}>
       A division of Lone Star Building Inspection, Inc.
     </Text>
-    {/* <Text style={styles.mainTitle}>Inspection report</Text> */}
     <Text style={styles.attachmentText}>Attachment to HUD/FHA Form 92051</Text>
   </View>
 );
 
-// Footer Component - appear on every page
 const Footer = () => (
   <View style={styles.footer} fixed>
     <Image src={FOOTER_LEFT_IMAGE_URL} alt='Img' style={styles.footerImage} />
     <Text style={styles.footerText}>
-      All Utilities On At Time of Inspection, Unless Otherwise Noted{"\n"}
+      All Utilities On At Time of Inspection, Unless Otherwise Noted{"\\n"}
       T.R.E.C Lic. # 10546 | TSBPE Lic. # I-3836 Texas Code Enforcement Officer
-      Lic. # 7055{"\n"}
+      Lic. # 7055{"\\n"}
       Certified ICC Professionals | Residential Combination Inspector
     </Text>
     <Image src={FOOTER_RIGHT_IMAGE_URL} alt='Img' style={styles.footerImage} />
   </View>
 );
 
-// Section with report info - appear on every page
 const ReportHeaderInfo = ({ jobData }) => (
   <View style={styles.infoSection}>
     <View style={styles.infoRow}>
@@ -375,202 +601,3 @@ const ReportHeaderInfo = ({ jobData }) => (
     </View>
   </View>
 );
-
-// Main function to generate PDF
-export const generateReportPdf = async (imagesByLabel, jobData = {}) => {
-  console.log("Original imagesByLabel:", imagesByLabel);
-
-  const processedEntries = await Promise.all(
-    Object.entries(imagesByLabel).map(async ([label, images]) => {
-      const processedImages = await Promise.all(
-        images.map(async (img) => {
-          if (!img?.url) return img;
-
-          try {
-            const dataUrl = await fetchImageAsDataUrl(img.url);
-            return { ...img, url: dataUrl };
-          } catch (err) {
-            console.warn(`Image conversion failed for ${img.fileName}:`, err);
-            return { ...img, url: null };
-          }
-        }),
-      );
-
-      return [label, processedImages];
-    }),
-  );
-
-  const processedByLabel = Object.fromEntries(processedEntries);
-
-  const sections = Object.entries(processedByLabel);
-
-  // Calculate how many sections per page
-  const sectionsPerPage = 2;
-
-  const blob = await pdf(
-    <Document>
-      {/* Page 1 */}
-      <Page size='A4' style={styles.page}>
-        {/* Header on every page */}
-        <Header jobData={jobData} />
-
-        <ReportHeaderInfo jobData={jobData} />
-
-        {/* Dynamic sections for first page */}
-        {sections.slice(0, sectionsPerPage).map(([label, images], index) => (
-          <View key={`section-${label}-${index}`} wrap={false}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>{label}</Text>
-              {images.length === 1 ? (
-                <View style={styles.imageSingle}>
-                  {images[0]?.url ? (
-                    <Image
-                      src={cleanImageUrl(images[0].url)}
-                      alt='Img'
-                      style={styles.image}
-                    />
-                  ) : (
-                    <Text style={{ color: "red", fontSize: 10 }}>
-                      Image not available
-                    </Text>
-                  )}
-                  {images[0]?.noteForAdmin && (
-                    <Text style={styles.note}>
-                      Note: {images[0].noteForAdmin}
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.imageRow}>
-                  {images.slice(0, 2).map((img, imgIndex) => (
-                    <View
-                      key={`img-${img._id || imgIndex}`}
-                      style={styles.imageContainer}>
-                      {img.url ? (
-                        <Image
-                          src={cleanImageUrl(img.url)}
-                          alt='Img'
-                          style={styles.image}
-                        />
-                      ) : (
-                        <Text style={{ color: "red", fontSize: 10 }}>
-                          Image not available
-                        </Text>
-                      )}
-                      {img.noteForAdmin && (
-                        <Text style={styles.note}>
-                          Note: {img.noteForAdmin}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-        ))}
-
-        {/* Footer on every page */}
-        <Footer />
-
-        {/* Page number */}
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber }) => `${pageNumber}`}
-          fixed
-        />
-      </Page>
-
-      {/* Additional pages if there are more sections */}
-      {Array.from({
-        length: Math.ceil(
-          (sections.length - sectionsPerPage) / sectionsPerPage,
-        ),
-      }).map((_, pageIndex) => {
-        const startIndex = sectionsPerPage + pageIndex * sectionsPerPage;
-        const endIndex = startIndex + sectionsPerPage;
-        const pageSections = sections.slice(startIndex, endIndex);
-
-        return (
-          <Page key={`page-${pageIndex + 2}`} size='A4' style={styles.page}>
-            {/* Header on every page */}
-            <Header jobData={jobData} />
-
-            <ReportHeaderInfo jobData={jobData} />
-
-            {/* Dynamic sections for this page */}
-            {pageSections.map(([label, images], index) => (
-              <View key={`section-${label}-${startIndex + index}`} wrap={false}>
-                <View style={styles.sectionContainer}>
-                  <Text style={styles.sectionTitle}>{label}</Text>
-                  {images.length === 1 ? (
-                    <View style={styles.imageSingle}>
-                      {images[0]?.url ? (
-                        <Image
-                          src={images[0].url}
-                          alt='Img'
-                          style={styles.image}
-                        />
-                      ) : (
-                        <Text style={{ color: "red", fontSize: 10 }}>
-                          Image not available
-                        </Text>
-                      )}
-                      {images[0]?.noteForAdmin && (
-                        <Text style={styles.note}>
-                          Note: {images[0].noteForAdmin}
-                        </Text>
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.imageRow}>
-                      {images.slice(0, 2).map((img, imgIndex) => (
-                        <View
-                          key={`img-${img._id || imgIndex}`}
-                          style={styles.imageContainer}>
-                          {img.url ? (
-                            <Image
-                              src={img.url}
-                              alt='Img'
-                              style={styles.image}
-                            />
-                          ) : (
-                            <Text style={{ color: "red", fontSize: 10 }}>
-                              Image not available
-                            </Text>
-                          )}
-                          {img.noteForAdmin && (
-                            <Text style={styles.note}>
-                              Note: {img.noteForAdmin}
-                            </Text>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              </View>
-            ))}
-
-            {/* Footer on every page */}
-            <Footer />
-
-            {/* Page number */}
-            <Text
-              style={styles.pageNumber}
-              render={({ pageNumber }) => `${pageNumber}`}
-              fixed
-            />
-          </Page>
-        );
-      })}
-    </Document>,
-  ).toBlob();
-
-  const fileName = (jobData?.streetAddress || "Inspection_Report")
-    .replace(/[\s,]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  saveAs(blob, `${fileName || "Inspection_Report"}.pdf`);
-};
